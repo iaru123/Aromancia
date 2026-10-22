@@ -1,0 +1,6 @@
+{
+  "name": "Aromancia - Haute Parfumerie",
+  "description": "Tienda y catálogo de alta perfumería artesanal en Vue 3 / Vue CLI con gestión de fragancias, filtros reactivos, persistencia LocalStorage, autenticación de compradores y panel de administración.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
