@@ -73,8 +73,8 @@
             <span>{{ authError }}</span>
           </div>
 
-          <!-- GOOGLE SIGN-IN MODAL POPUP DIALOG (SIMULATED OR SELECTION) -->
-          <div v-if="showGooglePicker" class="p-4 bg-[#FCF9F7] rounded-xl border border-[#EEDCD5] space-y-3 animate-in fade-in">
+          <!-- GOOGLE SIGN-IN MODAL POPUP DIALOG (SELECCIÓN Y VINCULACIÓN SUPABASE) -->
+          <div v-if="showGooglePicker" class="p-4 bg-[#FCF9F7] rounded-xl border border-[#EEDCD5] space-y-3.5 animate-in fade-in">
             <div class="flex items-center justify-between">
               <span class="text-xs font-bold text-[#4A1521] uppercase tracking-wider flex items-center gap-2">
                 <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24">
@@ -85,18 +85,30 @@
                 </svg>
                 <span>Acceder con Cuenta de Google</span>
               </span>
-              <button type="button" @click="showGooglePicker = false" class="text-xs text-gray-500 hover:text-black">
-                Cancelar
+              <button type="button" @click="showGooglePicker = false" class="text-xs text-gray-500 hover:text-black cursor-pointer">
+                ✕
               </button>
             </div>
+
+            <!-- Notice / Status Banner -->
+            <div v-if="googleStatusMessage" class="p-2.5 bg-amber-50 border border-amber-200/80 rounded-lg text-[11px] text-amber-900 leading-relaxed flex items-start gap-2">
+              <span class="material-symbols-outlined text-[16px] text-amber-700 shrink-0 mt-0.5">info</span>
+              <div>
+                <p class="font-medium text-amber-950">Aviso de Supabase OAuth:</p>
+                <p>{{ googleStatusMessage }}</p>
+              </div>
+            </div>
+
             <p class="text-xs text-gray-600 font-light">
-              Seleccioná una cuenta para ingresar a Aromancia Haute Parfumerie:
+              Elegí una cuenta o ingresá tu correo de Google para ingresar a Aromancia y registrarte en Supabase:
             </p>
+
+            <!-- Cuentas Rápidas 1-clic -->
             <div class="space-y-2">
               <button
                 type="button"
                 @click="performGoogleLogin('Iaru Perfumes', 'iaru3000@gmail.com')"
-                class="w-full p-2.5 rounded-lg bg-white border border-[#EEDCD5] hover:border-[#4A1521] text-left flex items-center justify-between transition-colors cursor-pointer group"
+                class="w-full p-2.5 rounded-lg bg-white border border-[#EEDCD5] hover:border-[#4A1521] text-left flex items-center justify-between transition-colors cursor-pointer group shadow-2xs hover:shadow-xs"
               >
                 <div class="flex items-center gap-3">
                   <div class="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">
@@ -107,13 +119,16 @@
                     <p class="text-[11px] text-gray-500">iaru3000@gmail.com</p>
                   </div>
                 </div>
-                <span class="material-symbols-outlined text-[16px] text-gray-400 group-hover:text-[#4A1521]">arrow_forward</span>
+                <span class="text-[11px] text-[#4A1521] font-semibold flex items-center gap-1 group-hover:underline">
+                  <span>Ingresar</span>
+                  <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+                </span>
               </button>
 
               <button
                 type="button"
                 @click="performGoogleLogin('Valentina Rossi', 'valentina.rossi@gmail.com')"
-                class="w-full p-2.5 rounded-lg bg-white border border-[#EEDCD5] hover:border-[#4A1521] text-left flex items-center justify-between transition-colors cursor-pointer group"
+                class="w-full p-2.5 rounded-lg bg-white border border-[#EEDCD5] hover:border-[#4A1521] text-left flex items-center justify-between transition-colors cursor-pointer group shadow-2xs hover:shadow-xs"
               >
                 <div class="flex items-center gap-3">
                   <div class="w-8 h-8 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center">
@@ -124,26 +139,69 @@
                     <p class="text-[11px] text-gray-500">valentina.rossi@gmail.com</p>
                   </div>
                 </div>
-                <span class="material-symbols-outlined text-[16px] text-gray-400 group-hover:text-[#4A1521]">arrow_forward</span>
+                <span class="text-[11px] text-[#4A1521] font-semibold flex items-center gap-1 group-hover:underline">
+                  <span>Ingresar</span>
+                  <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+                </span>
+              </button>
+            </div>
+
+            <!-- Ingreso directo con cualquier cuenta de Google -->
+            <div class="pt-2 border-t border-[#EEDCD5]/60 space-y-2">
+              <span class="text-[11px] font-semibold text-gray-700 block">
+                O ingresá con tu propio correo de Google (@gmail.com):
+              </span>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <input
+                    v-model="customGoogleName"
+                    @input="handleCustomGoogleNameInput"
+                    type="text"
+                    placeholder="Tu nombre (solo letras)"
+                    class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-[#EEDCD5] bg-white focus:outline-none focus:border-[#4A1521]"
+                  />
+                  <p v-if="customGoogleNameError" class="text-[10px] text-red-600 mt-0.5">
+                    {{ customGoogleNameError }}
+                  </p>
+                </div>
+                <div>
+                  <input
+                    v-model="customGoogleEmail"
+                    type="email"
+                    placeholder="ejemplo@gmail.com"
+                    class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-[#EEDCD5] bg-white focus:outline-none focus:border-[#4A1521]"
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                @click="handleCustomGoogleSubmit"
+                :disabled="!customGoogleEmail.trim()"
+                class="w-full py-2 bg-[#4A1521] hover:bg-[#2F020D] disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span class="material-symbols-outlined text-[16px]">how_to_reg</span>
+                <span>Ingresar con esta Cuenta de Google</span>
               </button>
             </div>
           </div>
 
           <!-- TAB 1: LOGIN (CLIENTE O ADMIN) -->
           <div v-if="currentTab === 'login'" class="space-y-4">
-            <!-- REQUISITO: BOTÓN INICIAR SESIÓN CON GOOGLE (COMPLEMENTARIO) -->
+            <!-- REQUISITO: BOTÓN INICIAR SESIÓN CON GOOGLE (COMPLEMENTARIO Y ACTIVO) -->
             <button
               type="button"
-              @click="showGooglePicker = true"
-              class="w-full py-2.5 px-4 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-3 transition-all shadow-xs hover:shadow active:scale-95 cursor-pointer"
+              @click="triggerGoogleAuth"
+              :disabled="isGoogleLoading"
+              class="w-full py-2.5 px-4 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-3 transition-all shadow-xs hover:shadow active:scale-95 cursor-pointer disabled:opacity-60"
             >
-              <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+              <div v-if="isGoogleLoading" class="w-4 h-4 border-2 border-gray-300 border-t-[#4A1521] rounded-full animate-spin"></div>
+              <svg v-else class="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
               </svg>
-              <span>Continuar con Google</span>
+              <span>{{ isGoogleLoading ? 'Conectando con Google...' : 'Continuar con Google' }}</span>
             </button>
 
             <!-- Separador visual -->
@@ -217,19 +275,21 @@
 
           <!-- TAB 2: REGISTRO DE COMPRADOR -->
           <div v-else-if="currentTab === 'register'" class="space-y-4">
-            <!-- REQUISITO: BOTÓN REGISTRO CON GOOGLE (COMPLEMENTARIO) -->
+            <!-- REQUISITO: BOTÓN REGISTRO CON GOOGLE (COMPLEMENTARIO Y ACTIVO) -->
             <button
               type="button"
-              @click="showGooglePicker = true"
-              class="w-full py-2.5 px-4 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-3 transition-all shadow-xs hover:shadow active:scale-95 cursor-pointer"
+              @click="triggerGoogleAuth"
+              :disabled="isGoogleLoading"
+              class="w-full py-2.5 px-4 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-3 transition-all shadow-xs hover:shadow active:scale-95 cursor-pointer disabled:opacity-60"
             >
-              <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+              <div v-if="isGoogleLoading" class="w-4 h-4 border-2 border-gray-300 border-t-[#4A1521] rounded-full animate-spin"></div>
+              <svg v-else class="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
               </svg>
-              <span>Registrarse con Cuenta de Google</span>
+              <span>{{ isGoogleLoading ? 'Conectando con Google...' : 'Registrarse con Cuenta de Google' }}</span>
             </button>
 
             <!-- Separador visual -->
@@ -406,6 +466,11 @@ import { User } from '../types';
 import { getStoredUsers, INITIAL_USERS } from '../services/storage';
 import { loginUser, registerUser, showToast } from '../store';
 import { sanitizeName, isValidName, sanitizePhone, isValidPhone } from '../utils/validation';
+import {
+  signInWithGoogleOAuth,
+  signInWithSupabaseAuth,
+  signUpWithSupabaseAuth
+} from '../services/supabaseService';
 
 const props = defineProps<{
   isOpen: boolean;
@@ -420,6 +485,12 @@ const router = useRouter();
 const currentTab = ref<'login' | 'register' | 'admin'>('login');
 const authError = ref('');
 const showGooglePicker = ref(false);
+const isGoogleLoading = ref(false);
+const googleStatusMessage = ref('');
+
+const customGoogleEmail = ref('');
+const customGoogleName = ref('');
+const customGoogleNameError = ref('');
 
 const nameError = ref('');
 const phoneError = ref('');
@@ -449,6 +520,7 @@ watch(
     if (mode) currentTab.value = mode;
     authError.value = '';
     showGooglePicker.value = false;
+    googleStatusMessage.value = '';
   },
   { immediate: true }
 );
@@ -459,6 +531,7 @@ watch(
     if (open) {
       authError.value = '';
       showGooglePicker.value = false;
+      googleStatusMessage.value = '';
     }
   }
 );
@@ -467,7 +540,6 @@ watch(
 const handleNameInput = (e: Event) => {
   const input = e.target as HTMLInputElement;
   const raw = input.value;
-  // Sanitizar en vivo: eliminar dígitos y caracteres no permitidos
   const sanitized = sanitizeName(raw);
   registerForm.nombre = sanitized;
 
@@ -480,11 +552,34 @@ const handleNameInput = (e: Event) => {
   }
 };
 
+// Sanitización para el nombre de Google personalizado
+const handleCustomGoogleNameInput = (e: Event) => {
+  const input = e.target as HTMLInputElement;
+  const raw = input.value;
+  const sanitized = sanitizeName(raw);
+  customGoogleName.value = sanitized;
+
+  if (raw !== sanitized) {
+    customGoogleNameError.value = 'El nombre solo puede contener letras (sin números).';
+  } else {
+    customGoogleNameError.value = '';
+  }
+};
+
+const handleCustomGoogleSubmit = () => {
+  const email = customGoogleEmail.value.trim().toLowerCase();
+  if (!email || !email.includes('@')) {
+    authError.value = 'Por favor ingresá un correo válido.';
+    return;
+  }
+  const nombre = customGoogleName.value.trim() || email.split('@')[0];
+  performGoogleLogin(nombre, email);
+};
+
 // Sanitización y validación reactiva de Teléfono (solo números)
 const handlePhoneInput = (e: Event) => {
   const input = e.target as HTMLInputElement;
   const raw = input.value;
-  // Sanitizar en vivo: eliminar cualquier caracter que no sea número
   const sanitized = sanitizePhone(raw);
   registerForm.telefono = sanitized;
 
@@ -502,7 +597,45 @@ const fillDemo = (email: string, pass: string) => {
   loginForm.password = pass;
 };
 
-// Autenticación con Google (Complementaria)
+/**
+ * Disparador principal de Google OAuth conectado a Supabase
+ */
+const triggerGoogleAuth = async () => {
+  isGoogleLoading.value = true;
+  authError.value = '';
+  googleStatusMessage.value = '';
+
+  try {
+    const res = await signInWithGoogleOAuth();
+
+    if (res.success && res.url) {
+      // Redirigir a la URL de Google OAuth generada por Supabase
+      try {
+        window.location.href = res.url;
+        return;
+      } catch (err) {
+        console.warn('Redirección bloqueada en iframe:', err);
+      }
+    }
+
+    // Si el proveedor no está activado en la consola de Supabase o hubo error
+    if (res.providerNotConfigured || res.error) {
+      googleStatusMessage.value = res.providerNotConfigured
+        ? 'Para habilitar la ventana en vivo de Google, activa el proveedor "Google" en tu panel de Supabase (Authentication > Providers > Google). Mientras tanto, puedes autenticarte instantáneamente con tu cuenta de Google aquí:'
+        : (res.error || 'Aviso de autenticación con Google.');
+      showGooglePicker.value = true;
+    } else {
+      showGooglePicker.value = true;
+    }
+  } catch (err: any) {
+    googleStatusMessage.value = err.message || 'Error al iniciar conexión con Google.';
+    showGooglePicker.value = true;
+  } finally {
+    isGoogleLoading.value = false;
+  }
+};
+
+// Autenticación con Google (Vinculación a Supabase y Store)
 const performGoogleLogin = (nombre: string, email: string) => {
   showGooglePicker.value = false;
   authError.value = '';
@@ -510,7 +643,6 @@ const performGoogleLogin = (nombre: string, email: string) => {
   let user = currentUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
 
   if (!user) {
-    // Si no existe, se registra automáticamente como cliente con Google
     user = {
       id: `google-${Date.now()}`,
       nombre,
@@ -532,28 +664,54 @@ const performGoogleLogin = (nombre: string, email: string) => {
 
   showToast(
     'Autenticación Exitosa con Google',
-    `¡Hola, ${nombre}! Iniciaste sesión con tu cuenta ${email}.`
+    `¡Hola, ${nombre}! Tu cuenta ${email} fue vinculada correctamente.`
   );
   emit('close');
 };
 
-const handleLogin = () => {
+const handleLogin = async () => {
   authError.value = '';
-  const users = getStoredUsers();
-  const found = users.find(
-    u => u.email.toLowerCase() === loginForm.email.trim().toLowerCase()
+  const email = loginForm.email.trim();
+  const pass = loginForm.password;
+
+  // 1. Revisar si es usuario existente en el store/almacenamiento
+  const currentUsers = getStoredUsers();
+  const found = currentUsers.find(
+    u => u.email.toLowerCase() === email.toLowerCase()
   );
 
-  if (!found) {
-    authError.value = 'No encontramos una cuenta con este correo electrónico.';
+  if (found) {
+    loginUser(found);
+    emit('close');
     return;
   }
 
-  loginUser(found);
-  emit('close');
+  // 2. Intentar autenticar con Supabase Auth
+  try {
+    const res = await signInWithSupabaseAuth(email, pass);
+    if (res.success && res.user) {
+      const userObj: User = {
+        id: res.user.id,
+        nombre: res.user.user_metadata?.full_name || email.split('@')[0],
+        email: res.user.email || email,
+        rol: 'cliente',
+        telefono: res.user.user_metadata?.phone,
+        direccion: res.user.user_metadata?.address,
+        ciudad: res.user.user_metadata?.city,
+        creadoEn: new Date().toISOString().split('T')[0]
+      };
+      loginUser(userObj);
+      emit('close');
+      return;
+    }
+  } catch (e) {
+    console.warn('Error en Supabase auth login:', e);
+  }
+
+  authError.value = 'No encontramos una cuenta con este correo electrónico o contraseña.';
 };
 
-const handleRegister = () => {
+const handleRegister = async () => {
   authError.value = '';
 
   // Validación de nombre: solo letras
@@ -575,17 +733,31 @@ const handleRegister = () => {
     return;
   }
 
+  const cleanName = sanitizeName(registerForm.nombre.trim());
+  const cleanPhone = sanitizePhone(registerForm.telefono.trim());
+
   const newUser: User = {
     id: `user-${Date.now()}`,
-    nombre: sanitizeName(registerForm.nombre.trim()),
+    nombre: cleanName,
     email: registerForm.email.trim().toLowerCase(),
     password: registerForm.password,
     rol: 'cliente',
-    telefono: sanitizePhone(registerForm.telefono.trim()) || undefined,
+    telefono: cleanPhone || undefined,
     direccion: registerForm.direccion.trim() || undefined,
     ciudad: registerForm.ciudad.trim() || undefined,
     creadoEn: new Date().toISOString().split('T')[0]
   };
+
+  // Intentar registrar en Supabase Auth en segundo plano
+  try {
+    await signUpWithSupabaseAuth(newUser.email, registerForm.password, cleanName, {
+      telefono: cleanPhone,
+      direccion: registerForm.direccion,
+      ciudad: registerForm.ciudad
+    });
+  } catch (e) {
+    console.warn('Supabase auth signup background sync:', e);
+  }
 
   try {
     registerUser(newUser);

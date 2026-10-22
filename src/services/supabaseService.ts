@@ -1,0 +1,452 @@
+import { supabase } from '../utils/supabase';
+import { Perfume, User, Order } from '../types';
+import { INITIAL_PERFUMES } from '../data/initialPerfumes';
+import { INITIAL_USERS } from './storage';
+
+export interface SupabaseStatus {
+  connected: boolean;
+  message: string;
+  hasTables?: boolean;
+}
+
+/**
+ * Checks connection to the configured Supabase instance
+ */
+export async function checkSupabaseStatus(): Promise<SupabaseStatus> {
+  try {
+    const { error } = await supabase.from('perfumes').select('id').limit(1);
+    if (!error) {
+      return { connected: true, message: 'Conectado exitosamente con Supabase', hasTables: true };
+    }
+    // Code 42P01 means table does not exist yet (normal before running SQL script)
+    if (error.code === '42P01') {
+      return {
+        connected: true,
+        message: 'Conectado a Supabase (tablas pendientes de inicializar con el script SQL)',
+        hasTables: false
+      };
+    }
+    return {
+      connected: true,
+      message: `Supabase alcanzable (${error.message || 'Verificando tablas'})`,
+      hasTables: false
+    };
+  } catch (err: any) {
+    return {
+      connected: false,
+      message: err.message || 'No se pudo conectar a Supabase'
+    };
+  }
+}
+
+/**
+ * Normalizes a database row to a Perfume object
+ */
+function normalizePerfume(row: any): Perfume {
+  const topNotes = row.notas_salida || row.notas?.top || [];
+  const heartNotes = row.notas_corazon || row.notas?.heart || [];
+  const baseNotes = row.notas_fondo || row.notas?.base || [];
+
+  return {
+    id: row.id,
+    nombre: row.nombre || '',
+    categoria: row.categoria || 'unisex',
+    familia: row.familia || 'Floral',
+    concentracion: row.concentracion || 'Eau de Parfum',
+    precio: Number(row.precio) || 0,
+    precioOriginal: row.precio_original ? Number(row.precio_original) : (row.precioOriginal ? Number(row.precioOriginal) : undefined),
+    calificacion: Number(row.calificacion) || 5,
+    totalResenas: Number(row.total_resenas ?? row.totalResenas ?? 0),
+    volumen: row.volumen || '100ml',
+    descripcion: row.descripcion || '',
+    descripcionLarga: row.descripcion_larga || row.descripcionLarga || '',
+    imagen: row.imagen || '',
+    tag: row.tag || '',
+    stock: Number(row.stock) || 0,
+    notas: {
+      top: Array.isArray(topNotes) ? topNotes : [String(topNotes)],
+      heart: Array.isArray(heartNotes) ? heartNotes : [String(heartNotes)],
+      base: Array.isArray(baseNotes) ? baseNotes : [String(baseNotes)]
+    },
+    acordesPrincipales: row.acordes_principales || row.acordesPrincipales || [],
+    creadoEn: row.creado_en || row.creadoEn || new Date().toISOString().split('T')[0]
+  };
+}
+
+/**
+ * Normalizes a database row to an Order object
+ */
+function normalizeOrder(row: any): Order {
+  return {
+    id: row.id,
+    fecha: row.fecha || new Date().toISOString().split('T')[0],
+    cliente: {
+      id: row.cliente_id || row.cliente?.id,
+      nombre: row.cliente_nombre || row.cliente?.nombre || '',
+      email: row.cliente_email || row.cliente?.email || '',
+      telefono: row.cliente_telefono || row.cliente?.telefono || '',
+      direccion: row.cliente_direccion || row.cliente?.direccion || '',
+      ciudad: row.cliente_ciudad || row.cliente?.ciudad || ''
+    },
+    items: typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || []),
+    subtotal: Number(row.subtotal) || 0,
+    envio: Number(row.envio) || 0,
+    total: Number(row.total) || 0,
+    estado: row.estado || 'En preparación en Atelier',
+    metodoPago: row.metodo_pago || row.metodoPago || 'Tarjeta de Crédito'
+  };
+}
+
+/**
+ * Fetches perfumes from Supabase; falls back to local data if table doesn't exist
+ */
+export async function fetchPerfumesFromSupabase(): Promise<{ data: Perfume[]; fromSupabase: boolean }> {
+  try {
+    const { data, error } = await supabase
+      .from('perfumes')
+      .select('*')
+      .order('nombre', { ascending: true });
+
+    if (error || !data || data.length === 0) {
+      if (error && error.code !== '42P01') {
+        console.warn('Nota de Supabase al consultar perfumes:', error.message);
+      }
+      return { data: INITIAL_PERFUMES, fromSupabase: false };
+    }
+
+    const mapped = data.map(normalizePerfume);
+    return { data: mapped, fromSupabase: true };
+  } catch (err) {
+    console.warn('Fallo de red con Supabase al cargar perfumes:', err);
+    return { data: INITIAL_PERFUMES, fromSupabase: false };
+  }
+}
+
+/**
+ * Persists a new or updated perfume into Supabase
+ */
+export async function persistPerfumeToSupabase(perfume: Perfume): Promise<boolean> {
+  try {
+    const dbPayload = {
+      id: perfume.id,
+      nombre: perfume.nombre,
+      categoria: perfume.categoria,
+      familia: perfume.familia,
+      concentracion: perfume.concentracion,
+      precio: perfume.precio,
+      precio_original: perfume.precioOriginal || null,
+      calificacion: perfume.calificacion || 5,
+      total_resenas: perfume.totalResenas || 0,
+      volumen: perfume.volumen || '100ml',
+      descripcion: perfume.descripcion,
+      descripcion_larga: perfume.descripcionLarga || null,
+      imagen: perfume.imagen,
+      tag: perfume.tag || null,
+      stock: perfume.stock || 0,
+      notas_salida: perfume.notas?.top || [],
+      notas_corazon: perfume.notas?.heart || [],
+      notas_fondo: perfume.notas?.base || [],
+      acordes_principales: perfume.acordesPrincipales || [],
+      creado_en: perfume.creadoEn || new Date().toISOString().split('T')[0]
+    };
+
+    const { error } = await supabase
+      .from('perfumes')
+      .upsert(dbPayload, { onConflict: 'id' });
+
+    if (error) {
+      console.warn('Error al guardar perfume en Supabase:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('Fallo de red al persistir perfume en Supabase:', err);
+    return false;
+  }
+}
+
+/**
+ * Deletes a perfume from Supabase
+ */
+export async function deletePerfumeFromSupabase(id: string): Promise<boolean> {
+  try {
+    const { error } = await supabase.from('perfumes').delete().eq('id', id);
+    if (error) {
+      console.warn('Error al eliminar perfume en Supabase:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('Fallo de red al eliminar perfume en Supabase:', err);
+    return false;
+  }
+}
+
+/**
+ * Fetches orders from Supabase
+ */
+export async function fetchOrdersFromSupabase(): Promise<{ data: Order[]; fromSupabase: boolean }> {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .order('fecha', { ascending: false });
+
+    if (error || !data || data.length === 0) {
+      return { data: [], fromSupabase: false };
+    }
+
+    const mapped = data.map(normalizeOrder);
+    return { data: mapped, fromSupabase: true };
+  } catch (err) {
+    console.warn('Error al obtener pedidos de Supabase:', err);
+    return { data: [], fromSupabase: false };
+  }
+}
+
+/**
+ * Saves a new order to Supabase
+ */
+export async function persistOrderToSupabase(order: Order): Promise<boolean> {
+  try {
+    const dbPayload = {
+      id: order.id,
+      fecha: order.fecha,
+      cliente_id: order.cliente?.id || null,
+      cliente_nombre: order.cliente?.nombre || '',
+      cliente_email: order.cliente?.email || '',
+      cliente_telefono: order.cliente?.telefono || null,
+      cliente_direccion: order.cliente?.direccion || '',
+      cliente_ciudad: order.cliente?.ciudad || '',
+      subtotal: order.subtotal,
+      envio: order.envio,
+      total: order.total,
+      estado: order.estado,
+      items: order.items,
+      metodo_pago: order.metodoPago
+    };
+
+    const { error } = await supabase
+      .from('orders')
+      .insert(dbPayload);
+
+    if (error) {
+      console.warn('Error al guardar pedido en Supabase:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('Fallo de red al persistir pedido en Supabase:', err);
+    return false;
+  }
+}
+
+/**
+ * Updates order status in Supabase
+ */
+export async function updateOrderStatusInSupabase(orderId: string, status: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('orders')
+      .update({ estado: status })
+      .eq('id', orderId);
+
+    if (error) {
+      console.warn('Error al actualizar estado en Supabase:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('Fallo de red al actualizar estado en Supabase:', err);
+    return false;
+  }
+}
+
+/**
+ * Fetches registered users from Supabase
+ */
+export async function fetchUsersFromSupabase(): Promise<{ data: User[]; fromSupabase: boolean }> {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .order('nombre', { ascending: true });
+
+    if (error || !data || data.length === 0) {
+      return { data: INITIAL_USERS, fromSupabase: false };
+    }
+
+    const mapped: User[] = data.map((row: any) => ({
+      id: row.id,
+      nombre: row.nombre || '',
+      email: row.email || '',
+      password: row.password || '',
+      rol: row.rol || 'cliente',
+      telefono: row.telefono || undefined,
+      direccion: row.direccion || undefined,
+      ciudad: row.ciudad || undefined,
+      creadoEn: row.creado_en || row.creadoEn || new Date().toISOString().split('T')[0]
+    }));
+
+    return { data: mapped, fromSupabase: true };
+  } catch (err) {
+    console.warn('Error al obtener usuarios de Supabase:', err);
+    return { data: INITIAL_USERS, fromSupabase: false };
+  }
+}
+
+/**
+ * Persists a user to Supabase users table
+ */
+export async function persistUserToSupabase(user: User): Promise<boolean> {
+  try {
+    const dbPayload = {
+      id: user.id,
+      nombre: user.nombre,
+      email: user.email.toLowerCase(),
+      password: user.password || null,
+      rol: user.rol || 'cliente',
+      telefono: user.telefono || null,
+      direccion: user.direccion || null,
+      ciudad: user.ciudad || null,
+      creado_en: user.creadoEn || new Date().toISOString().split('T')[0]
+    };
+
+    const { error } = await supabase
+      .from('users')
+      .upsert(dbPayload, { onConflict: 'email' });
+
+    if (error) {
+      console.warn('Error al registrar usuario en Supabase:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('Fallo de red al guardar usuario en Supabase:', err);
+    return false;
+  }
+}
+
+/**
+ * Signs in with Google via Supabase OAuth
+ */
+export async function signInWithGoogleOAuth(): Promise<{
+  success: boolean;
+  url?: string;
+  error?: string;
+  providerNotConfigured?: boolean;
+}> {
+  try {
+    // Current URL or origin for callback redirect
+    const redirectTo = window.location.origin;
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent'
+        }
+      }
+    });
+
+    if (error) {
+      const isProviderUnconfigured =
+        error.message?.toLowerCase().includes('provider is not enabled') ||
+        error.message?.toLowerCase().includes('unsupported provider') ||
+        error.message?.toLowerCase().includes('not enabled');
+
+      return {
+        success: false,
+        error: error.message,
+        providerNotConfigured: isProviderUnconfigured
+      };
+    }
+
+    if (data?.url) {
+      // In web app, we can navigate or popup
+      return { success: true, url: data.url };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || 'Error inesperado al iniciar con Google'
+    };
+  }
+}
+
+/**
+ * Signs in with Email and Password using Supabase Auth
+ */
+export async function signInWithSupabaseAuth(email: string, password: string): Promise<{
+  success: boolean;
+  user?: any;
+  error?: string;
+}> {
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, user: data.user };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Error al autenticar' };
+  }
+}
+
+/**
+ * Signs up with Email and Password using Supabase Auth
+ */
+export async function signUpWithSupabaseAuth(
+  email: string,
+  password: string,
+  nombre: string,
+  extra: { telefono?: string; direccion?: string; ciudad?: string } = {}
+): Promise<{
+  success: boolean;
+  user?: any;
+  error?: string;
+}> {
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: nombre,
+          name: nombre,
+          phone: extra.telefono,
+          address: extra.direccion,
+          city: extra.ciudad
+        }
+      }
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, user: data.user };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Error al registrar' };
+  }
+}
+
+/**
+ * Signs out from Supabase Auth
+ */
+export async function signOutSupabase(): Promise<void> {
+  try {
+    await supabase.auth.signOut();
+  } catch (err) {
+    console.warn('Error al cerrar sesión en Supabase:', err);
+  }
+}

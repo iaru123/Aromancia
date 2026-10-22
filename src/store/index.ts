@@ -18,6 +18,21 @@ import {
   updateStoredOrderStatus
 } from '../services/storage';
 
+import { supabase } from '../utils/supabase';
+import {
+  checkSupabaseStatus,
+  fetchPerfumesFromSupabase,
+  persistPerfumeToSupabase,
+  deletePerfumeFromSupabase,
+  fetchOrdersFromSupabase,
+  persistOrderToSupabase,
+  updateOrderStatusInSupabase,
+  fetchUsersFromSupabase,
+  persistUserToSupabase,
+  signOutSupabase,
+  SupabaseStatus
+} from '../services/supabaseService';
+
 // Reactive State
 export const perfumes = ref<Perfume[]>([]);
 export const currentUser = ref<User | null>(null);
@@ -25,6 +40,13 @@ export const users = ref<User[]>([]);
 export const cart = ref<CartItem[]>([]);
 export const wishlist = ref<string[]>([]);
 export const orders = ref<Order[]>([]);
+
+// Supabase Connection & Sync State
+export const isSupabaseSyncing = ref(false);
+export const supabaseStatus = ref<SupabaseStatus>({
+  connected: false,
+  message: 'Iniciando conexión con Supabase...'
+});
 
 // Modal and UI Controls
 export const cartDrawerOpen = ref(false);
@@ -73,14 +95,107 @@ export const wishlistCount = computed(() => {
   return wishlist.value.length;
 });
 
-// App Initialization (Created/Mounted Lifecycle sync)
-export function initStore() {
+// App Initialization (Local first + Async Supabase sync)
+export async function initStore() {
+  // 1. Inmediato: Cargar datos locales para respuesta instantánea de UI
   perfumes.value = getStoredPerfumes();
   currentUser.value = getStoredCurrentUser();
   users.value = getStoredUsers();
   cart.value = getStoredCart();
   wishlist.value = getStoredWishlist();
   orders.value = getStoredOrders();
+
+  // 2. Verificar estado de Supabase
+  try {
+    const status = await checkSupabaseStatus();
+    supabaseStatus.value = status;
+  } catch (err: any) {
+    console.warn('Verificación de Supabase:', err);
+  }
+
+  // 3. Cargar información desde Supabase (Perfumes, Pedidos, Usuarios)
+  isSupabaseSyncing.value = true;
+  try {
+    const [perfumesRes, ordersRes, usersRes] = await Promise.allSettled([
+      fetchPerfumesFromSupabase(),
+      fetchOrdersFromSupabase(),
+      fetchUsersFromSupabase()
+    ]);
+
+    if (perfumesRes.status === 'fulfilled' && perfumesRes.value.fromSupabase) {
+      perfumes.value = perfumesRes.value.data;
+    }
+    if (ordersRes.status === 'fulfilled' && ordersRes.value.fromSupabase && ordersRes.value.data.length > 0) {
+      orders.value = ordersRes.value.data;
+    }
+    if (usersRes.status === 'fulfilled' && usersRes.value.fromSupabase && usersRes.value.data.length > 0) {
+      users.value = usersRes.value.data;
+    }
+  } catch (e) {
+    console.warn('Error en sincronización inicial con Supabase:', e);
+  } finally {
+    isSupabaseSyncing.value = false;
+  }
+
+  // 4. Suscribirse a cambios de sesión de Supabase Auth
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (sessionData.session?.user && !currentUser.value) {
+      syncUserFromSupabaseAuth(sessionData.session.user);
+    }
+
+    supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        syncUserFromSupabaseAuth(session.user);
+      }
+    });
+  } catch (authErr) {
+    console.warn('Error al verificar sesión de Supabase Auth:', authErr);
+  }
+}
+
+/**
+ * Sincroniza un usuario autenticado por Supabase (ej. Google OAuth) al store
+ */
+export function syncUserFromSupabaseAuth(sbUser: any) {
+  const email = sbUser.email || '';
+  const fullName =
+    sbUser.user_metadata?.full_name ||
+    sbUser.user_metadata?.name ||
+    email.split('@')[0] ||
+    'Usuario Google';
+  
+  const role: 'admin' | 'cliente' =
+    email.toLowerCase() === 'admin@aromancia.com' ? 'admin' : 'cliente';
+
+  const user: User = {
+    id: sbUser.id || `google-${Date.now()}`,
+    nombre: fullName,
+    email: email,
+    rol: role,
+    telefono: sbUser.user_metadata?.phone || '+54 11 5566-7788',
+    direccion: sbUser.user_metadata?.address || 'Dirección vinculada a Google',
+    ciudad: sbUser.user_metadata?.city || 'CABA',
+    creadoEn: new Date().toISOString().split('T')[0]
+  };
+
+  currentUser.value = user;
+  saveStoredCurrentUser(user);
+
+  // Persistir en tabla users de Supabase y localmente
+  persistUserToSupabase(user);
+  const currentUsers = getStoredUsers();
+  if (!currentUsers.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+    const updated = [...currentUsers, user];
+    saveStoredUsers(updated);
+    users.value = updated;
+  }
+
+  closeAuthModal();
+  showToast(
+    'Sesión Sincronizada con Supabase',
+    `¡Hola, ${fullName}! Tu cuenta fue vinculada correctamente.`
+  );
 }
 
 // Auth Actions
@@ -98,6 +213,9 @@ export function loginUser(user: User) {
   saveStoredCurrentUser(user);
   users.value = getStoredUsers();
   closeAuthModal();
+
+  // Async sync to Supabase users table
+  persistUserToSupabase(user);
 
   if (user.rol === 'admin') {
     showToast(
@@ -128,6 +246,9 @@ export function registerUser(newUser: User) {
   saveStoredCurrentUser(newUser);
   closeAuthModal();
 
+  // Sync to Supabase
+  persistUserToSupabase(newUser);
+
   showToast(
     `¡Bienvenida/o a Aromancia!`,
     `Tu cuenta como cliente ha sido creada exitosamente. Disfrutá de tu experiencia.`
@@ -137,6 +258,7 @@ export function registerUser(newUser: User) {
 export function logoutUser() {
   saveStoredCurrentUser(null);
   currentUser.value = null;
+  signOutSupabase();
   showToast('Sesión Cerrada', 'Has cerrado tu sesión.');
 }
 
@@ -240,6 +362,9 @@ export function checkout(clientInfo: {
     }
   });
 
+  // Async sync to Supabase orders table
+  persistOrderToSupabase(newOrder);
+
   clearCart();
   cartDrawerOpen.value = false;
   showToast(
@@ -260,6 +385,8 @@ export function toggleWishlist(perfumeId: string) {
 export function createPerfumeRecord(perfumeData: Omit<Perfume, 'id' | 'creadoEn'>) {
   const created = addStoredPerfume(perfumeData);
   perfumes.value = getStoredPerfumes();
+  // Async persist to Supabase
+  persistPerfumeToSupabase(created);
   showToast('Fragancia creada', `${created.nombre} fue registrada exitosamente en el catálogo.`);
   return created;
 }
@@ -268,6 +395,8 @@ export function updatePerfumeRecord(perfume: Perfume) {
   const success = updateStoredPerfume(perfume);
   if (success) {
     perfumes.value = getStoredPerfumes();
+    // Async persist to Supabase
+    persistPerfumeToSupabase(perfume);
     showToast('Fragancia actualizada', `Los datos de ${perfume.nombre} fueron guardados.`);
   }
   return success;
@@ -278,6 +407,8 @@ export function deletePerfumeRecord(perfumeId: string) {
   const success = deleteStoredPerfume(perfumeId);
   if (success) {
     perfumes.value = getStoredPerfumes();
+    // Async delete from Supabase
+    deletePerfumeFromSupabase(perfumeId);
     showToast('Fragancia eliminada', `${found?.nombre || 'El perfume'} fue retirado del catálogo.`);
   }
   return success;
@@ -289,11 +420,14 @@ export function updatePerfumeStock(perfumeId: string, newStock: number) {
     const updated = { ...p, stock: newStock };
     updateStoredPerfume(updated);
     perfumes.value = getStoredPerfumes();
+    persistPerfumeToSupabase(updated);
   }
 }
 
 export function changeOrderStatus(orderId: string, newStatus: Order['estado']) {
   updateStoredOrderStatus(orderId, newStatus);
   orders.value = getStoredOrders();
+  // Async update in Supabase
+  updateOrderStatusInSupabase(orderId, newStatus);
   showToast('Estado de pedido actualizado', `El pedido #${orderId} pasó a "${newStatus}".`);
 }
