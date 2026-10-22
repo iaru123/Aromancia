@@ -154,29 +154,48 @@
                 <button type="button" @click="showCheckoutForm = false" class="text-[11px] text-gray-500 underline">Volver</button>
               </div>
 
-              <input
-                v-model="checkoutForm.nombre"
-                type="text"
-                required
-                placeholder="Nombre completo"
-                class="w-full px-3 py-1.5 rounded-lg border border-[#EEDCD5] text-xs bg-[#FCF9F7]"
-              />
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="text-[10px] uppercase font-semibold text-[#4A1521]">Nombre y Apellido</label>
+                  <span class="text-[9px] text-emerald-700 font-medium">Solo letras</span>
+                </div>
+                <input
+                  v-model="checkoutForm.nombre"
+                  @input="handleCheckoutNameInput"
+                  type="text"
+                  required
+                  placeholder="Nombre y apellido"
+                  class="w-full px-3 py-1.5 rounded-lg border border-[#EEDCD5] text-xs bg-[#FCF9F7]"
+                />
+                <p v-if="checkoutNameError" class="text-[10px] text-red-600 mt-0.5">{{ checkoutNameError }}</p>
+              </div>
 
               <div class="grid grid-cols-2 gap-2">
-                <input
-                  v-model="checkoutForm.email"
-                  type="email"
-                  required
-                  placeholder="Email"
-                  class="w-full px-3 py-1.5 rounded-lg border border-[#EEDCD5] text-xs bg-[#FCF9F7]"
-                />
-                <input
-                  v-model="checkoutForm.telefono"
-                  type="tel"
-                  required
-                  placeholder="Teléfono"
-                  class="w-full px-3 py-1.5 rounded-lg border border-[#EEDCD5] text-xs bg-[#FCF9F7]"
-                />
+                <div>
+                  <label class="block text-[10px] uppercase font-semibold text-[#4A1521] mb-1">Email</label>
+                  <input
+                    v-model="checkoutForm.email"
+                    type="email"
+                    required
+                    placeholder="Email"
+                    class="w-full px-3 py-1.5 rounded-lg border border-[#EEDCD5] text-xs bg-[#FCF9F7]"
+                  />
+                </div>
+                <div>
+                  <div class="flex items-center justify-between mb-1">
+                    <label class="text-[10px] uppercase font-semibold text-[#4A1521]">Teléfono</label>
+                    <span class="text-[9px] text-emerald-700 font-medium">Solo números</span>
+                  </div>
+                  <input
+                    v-model="checkoutForm.telefono"
+                    @input="handleCheckoutPhoneInput"
+                    type="tel"
+                    required
+                    placeholder="1144556677"
+                    class="w-full px-3 py-1.5 rounded-lg border border-[#EEDCD5] text-xs bg-[#FCF9F7]"
+                  />
+                  <p v-if="checkoutPhoneError" class="text-[10px] text-red-600 mt-0.5">{{ checkoutPhoneError }}</p>
+                </div>
               </div>
 
               <div class="grid grid-cols-2 gap-2">
@@ -231,6 +250,7 @@ import {
   removeFromCart,
   checkout
 } from '../store';
+import { sanitizeName, isValidName, sanitizePhone, isValidPhone } from '../utils/validation';
 
 defineProps<{
   isOpen: boolean;
@@ -241,6 +261,8 @@ const emit = defineEmits<{
 }>();
 
 const showCheckoutForm = ref(false);
+const checkoutNameError = ref('');
+const checkoutPhoneError = ref('');
 
 const checkoutForm = reactive({
   nombre: '',
@@ -251,29 +273,70 @@ const checkoutForm = reactive({
   metodoPago: 'Mercado Pago (Tarjetas, Débito, Dinero en cuenta)'
 });
 
+const handleCheckoutNameInput = (e: Event) => {
+  const input = e.target as HTMLInputElement;
+  const raw = input.value;
+  const sanitized = sanitizeName(raw);
+  checkoutForm.nombre = sanitized;
+
+  if (raw !== sanitized) {
+    checkoutNameError.value = 'El nombre solo puede contener letras y espacios.';
+  } else if (!isValidName(sanitized, 2) && sanitized.length > 0) {
+    checkoutNameError.value = 'Ingresá al menos 2 letras válidas.';
+  } else {
+    checkoutNameError.value = '';
+  }
+};
+
+const handleCheckoutPhoneInput = (e: Event) => {
+  const input = e.target as HTMLInputElement;
+  const raw = input.value;
+  const sanitized = sanitizePhone(raw);
+  checkoutForm.telefono = sanitized;
+
+  if (raw !== sanitized) {
+    checkoutPhoneError.value = 'El teléfono debe contener exclusivamente números.';
+  } else if (!isValidPhone(sanitized, 6) && sanitized.length > 0) {
+    checkoutPhoneError.value = 'El teléfono debe tener al menos 6 números.';
+  } else {
+    checkoutPhoneError.value = '';
+  }
+};
+
 const initCheckout = () => {
   if (currentUser.value) {
-    checkoutForm.nombre = currentUser.value.nombre;
+    checkoutForm.nombre = sanitizeName(currentUser.value.nombre);
     checkoutForm.email = currentUser.value.email;
-    checkoutForm.telefono = currentUser.value.telefono || '';
+    checkoutForm.telefono = sanitizePhone(currentUser.value.telefono || '');
     checkoutForm.direccion = currentUser.value.direccion || '';
     checkoutForm.ciudad = currentUser.value.ciudad || 'CABA';
   } else {
     checkoutForm.nombre = 'Cliente Aromancia';
     checkoutForm.email = 'cliente@ejemplo.com';
-    checkoutForm.telefono = '+54 11 4455-6677';
+    checkoutForm.telefono = '1144556677';
     checkoutForm.direccion = 'Av. Alvear 1700';
     checkoutForm.ciudad = 'Recoleta, CABA';
   }
+  checkoutNameError.value = '';
+  checkoutPhoneError.value = '';
   showCheckoutForm.value = true;
 };
 
 const handleCompleteCheckout = () => {
+  if (!isValidName(checkoutForm.nombre, 2)) {
+    checkoutNameError.value = 'El nombre solo puede contener letras y espacios.';
+    return;
+  }
+  if (!isValidPhone(checkoutForm.telefono, 6)) {
+    checkoutPhoneError.value = 'El teléfono debe contener solo números (mínimo 6 dígitos).';
+    return;
+  }
+
   checkout(
     {
-      nombre: checkoutForm.nombre,
+      nombre: sanitizeName(checkoutForm.nombre),
       email: checkoutForm.email,
-      telefono: checkoutForm.telefono,
+      telefono: sanitizePhone(checkoutForm.telefono),
       direccion: checkoutForm.direccion,
       ciudad: checkoutForm.ciudad
     },

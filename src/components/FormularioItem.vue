@@ -18,11 +18,15 @@
       <form @submit.prevent="handleSubmit" class="space-y-5" novalidate>
         <!-- Nombre de la Fragancia -->
         <div class="space-y-1.5">
-          <label class="block text-xs font-semibold uppercase tracking-wider text-[#4A1521]">
-            Nombre de la Fragancia <span class="text-red-500">*</span>
-          </label>
+          <div class="flex items-center justify-between">
+            <label class="block text-xs font-semibold uppercase tracking-wider text-[#4A1521]">
+              Nombre de la Fragancia <span class="text-red-500">*</span>
+            </label>
+            <span class="text-[10px] text-emerald-700 font-medium">Solo letras</span>
+          </div>
           <input
             v-model="formData.nombre"
+            @input="handleNombreInput"
             @blur="validateField('nombre')"
             type="text"
             placeholder="Ej: Rosé Éclat, Noir Absolu..."
@@ -348,6 +352,7 @@
 <script setup lang="ts">
 import { reactive, computed, watch } from 'vue';
 import { Perfume, PerfumeFormData, FormErrors, OlfactoryFamily } from '../types';
+import { sanitizeName, isValidName } from '../utils/validation';
 
 const props = defineProps<{
   initialData?: Perfume | null;
@@ -411,6 +416,20 @@ watch(
   { immediate: true }
 );
 
+// Sanitización en vivo del nombre de la fragancia (solo letras y espacios)
+const handleNombreInput = (e: Event) => {
+  const input = e.target as HTMLInputElement;
+  const raw = input.value;
+  const sanitized = sanitizeName(raw);
+  formData.nombre = sanitized;
+
+  if (raw !== sanitized) {
+    errors.nombre = 'El nombre de la fragancia solo puede contener letras y espacios (se omitieron los números).';
+  } else {
+    validateField('nombre');
+  }
+};
+
 // Custom validations
 const validateField = (field: keyof FormErrors) => {
   switch (field) {
@@ -419,6 +438,8 @@ const validateField = (field: keyof FormErrors) => {
         errors.nombre = 'El nombre de la fragancia es obligatorio.';
       } else if (formData.nombre.trim().length < 3) {
         errors.nombre = 'El nombre debe tener al menos 3 caracteres.';
+      } else if (!isValidName(formData.nombre.trim(), 3)) {
+        errors.nombre = 'El nombre solo puede contener letras y espacios (no se permiten números ni caracteres especiales).';
       } else {
         delete errors.nombre;
       }

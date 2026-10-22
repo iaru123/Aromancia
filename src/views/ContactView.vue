@@ -30,18 +30,20 @@
 
         <form @submit.prevent="handleSubmit" class="space-y-4">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div class="space-y-1">
-              <label class="block text-xs font-semibold uppercase tracking-wider text-[#4A1521]">
-                Nombre y Apellido <span class="text-red-500">*</span>
-              </label>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-xs font-semibold uppercase tracking-wider text-[#4A1521]">
+                  Nombre y Apellido <span class="text-red-500">*</span>
+                </label>
+                <span class="text-[10px] text-emerald-700 font-medium">Solo letras</span>
+              </div>
               <input
                 v-model="form.nombre"
+                @input="handleNameInput"
                 type="text"
                 required
                 placeholder="Ej: Martina Bellini"
                 class="w-full px-3.5 py-2.5 rounded-xl border border-[#EEDCD5] text-xs sm:text-sm bg-[#FCF9F7] focus:outline-none focus:border-[#4A1521]"
               />
-            </div>
 
             <div class="space-y-1">
               <label class="block text-xs font-semibold uppercase tracking-wider text-[#4A1521]">
@@ -160,6 +162,7 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue';
 import { showToast } from '../store';
+import { sanitizeName, isValidName } from '../utils/validation';
 
 const form = reactive({
   nombre: '',
@@ -170,7 +173,17 @@ const form = reactive({
 
 const success = ref(false);
 
+const handleNameInput = (e: Event) => {
+  const input = e.target as HTMLInputElement;
+  form.nombre = sanitizeName(input.value);
+};
+
 const handleSubmit = () => {
+  if (!isValidName(form.nombre, 2)) {
+    showToast('Nombre inválido', 'El nombre solo puede contener letras y espacios.');
+    return;
+  }
+
   if (form.nombre && form.email && form.mensaje) {
     success.value = true;
     showToast('Mensaje enviado', 'Nos pondremos en contacto contigo dentro de las próximas 24 hs.');
