@@ -161,15 +161,6 @@
           <span>Gestión del Producto ({{ perfumes.length }})</span>
         </button>
 
-        <button
-          type="button"
-          @click="activeTab = 'sql'"
-          class="flex-1 py-3 px-4 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2"
-          :class="activeTab === 'sql' ? 'bg-[#4A1521] text-white shadow-sm' : 'text-gray-600 hover:text-[#4A1521] hover:bg-[#FCF9F7]'"
-        >
-          <span class="material-symbols-outlined text-[18px]">database</span>
-          <span>Base de Datos SQL (Supabase)</span>
-        </button>
       </div>
 
       <!-- ======================================================== -->
@@ -463,106 +454,6 @@
               </tbody>
             </table>
           </div>
-        </div>
-      </div>
-
-      <!-- ======================================================== -->
-      <!-- TAB 4: BASE DE DATOS SQL (TRANSFERENCIA A SUPABASE)      -->
-      <!-- ======================================================== -->
-      <div v-else-if="activeTab === 'sql'" class="space-y-6">
-        <!-- Overview Banner -->
-        <div class="bg-gradient-to-br from-[#2F020D] to-[#4A1521] text-white rounded-2xl p-6 sm:p-8 shadow-xl border border-white/10 space-y-4">
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div class="space-y-1">
-              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-emerald-300 text-[10px] font-semibold tracking-widest uppercase">
-                <span class="material-symbols-outlined text-[14px]">database</span>
-                <span>MIGRACIÓN RELACIONAL SQL · COMPATIBLE CON SUPABASE</span>
-              </div>
-              <h2 class="font-serif text-2xl sm:text-3xl text-white">
-                Exportación de Datos a SQL (Supabase)
-              </h2>
-              <p class="text-xs text-[#EBD9D2]/80 font-light max-w-2xl leading-relaxed">
-                Este script genera la estructura relacional DDL (tablas <code>users</code>, <code>perfumes</code>, <code>orders</code>, <code>order_items</code>), políticas Row Level Security (RLS) y las sentencias <code>INSERT INTO</code> con todos los datos actuales del Atelier para ejecutar en el <strong>SQL Editor</strong> de Supabase.
-              </p>
-            </div>
-
-            <!-- Action buttons -->
-            <div class="flex items-center gap-3 shrink-0 flex-wrap">
-              <button
-                type="button"
-                @click="copySqlScript"
-                class="px-4 py-2.5 rounded-xl bg-white text-[#4A1521] hover:bg-[#FCF9F7] text-xs font-semibold uppercase tracking-wider flex items-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer"
-              >
-                <span class="material-symbols-outlined text-[16px]">{{ copiedSql ? 'check' : 'content_copy' }}</span>
-                <span>{{ copiedSql ? '¡Copiado!' : 'Copiar SQL' }}</span>
-              </button>
-
-              <button
-                type="button"
-                @click="downloadSqlScript"
-                class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold uppercase tracking-wider flex items-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer"
-              >
-                <span class="material-symbols-outlined text-[16px]">download</span>
-                <span>Descargar .sql</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Quick Statistics Metric Badges -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-white/10 text-xs">
-            <div class="bg-white/10 p-3 rounded-xl border border-white/10">
-              <span class="text-white/60 text-[10px] uppercase block">Tabla Usuarios</span>
-              <span class="text-base font-bold text-white">{{ users.length }} registros SQL</span>
-            </div>
-            <div class="bg-white/10 p-3 rounded-xl border border-white/10">
-              <span class="text-white/60 text-[10px] uppercase block">Tabla Perfumes</span>
-              <span class="text-base font-bold text-white">{{ perfumes.length }} fragancias SQL</span>
-            </div>
-            <div class="bg-white/10 p-3 rounded-xl border border-white/10">
-              <span class="text-white/60 text-[10px] uppercase block">Tabla Pedidos</span>
-              <span class="text-base font-bold text-white">{{ orders.length }} órdenes SQL</span>
-            </div>
-            <div class="bg-white/10 p-3 rounded-xl border border-white/10">
-              <span class="text-white/60 text-[10px] uppercase block">Detalles de Ítems</span>
-              <span class="text-base font-bold text-white">{{ totalItemsCount }} productos en compras</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Instructions Card -->
-        <div class="bg-white rounded-2xl p-5 border border-[#EEDCD5] shadow-xs space-y-3">
-          <h3 class="font-serif text-sm font-semibold text-[#4A1521] flex items-center gap-2">
-            <span class="material-symbols-outlined text-[18px]">help</span>
-            Pasos para transferir e importar en Supabase:
-          </h3>
-          <ol class="list-decimal list-inside text-xs text-gray-600 space-y-1.5 leading-relaxed font-light">
-            <li>Creá o ingresá a tu proyecto en <strong class="text-gray-800">supabase.com</strong>.</li>
-            <li>En el panel lateral izquierdo de Supabase, hacé clic en <strong class="text-gray-800">SQL Editor</strong>.</li>
-            <li>Hacé clic en <strong class="text-gray-800">+ New Query</strong>.</li>
-            <li>Pegá el script copiándolo con el botón <strong class="text-[#4A1521]">"Copiar SQL"</strong> o abrí el archivo descargado <code class="bg-gray-100 px-1 py-0.5 rounded">supabase_aromancia.sql</code>.</li>
-            <li>Hacé clic en el botón verde <strong class="text-emerald-700">"Run"</strong> para crear las 4 tablas e insertar todos los datos del atelier.</li>
-          </ol>
-        </div>
-
-        <!-- Code Viewer Container -->
-        <div class="bg-[#1E1E1E] text-gray-200 rounded-2xl overflow-hidden shadow-lg border border-gray-800">
-          <div class="px-5 py-3 bg-[#2D2D2D] border-b border-gray-700 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span class="w-3 h-3 rounded-full bg-red-500"></span>
-              <span class="w-3 h-3 rounded-full bg-amber-500"></span>
-              <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
-              <span class="text-xs font-mono text-gray-400 ml-2">supabase_aromancia.sql</span>
-            </div>
-            <button
-              type="button"
-              @click="copySqlScript"
-              class="text-xs text-gray-300 hover:text-white flex items-center gap-1.5 cursor-pointer"
-            >
-              <span class="material-symbols-outlined text-[14px]">content_copy</span>
-              <span>{{ copiedSql ? 'Copiado al portapapeles' : 'Copiar todo el código' }}</span>
-            </button>
-          </div>
-          <pre class="p-5 text-xs font-mono overflow-x-auto max-h-[500px] leading-relaxed text-emerald-400/90 whitespace-pre scrollbar-thin"><code>{{ currentGeneratedSql }}</code></pre>
         </div>
       </div>
     </div>
