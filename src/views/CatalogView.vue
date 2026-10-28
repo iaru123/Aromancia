@@ -33,12 +33,14 @@
       :search-query="searchQuery"
       :selected-category="selectedCategory"
       :selected-family="selectedFamily"
+      :selected-price-range="selectedPriceRange"
       :sort-by="sortBy"
       :total-count="filteredPerfumes.length"
       :category-counts="categoryCounts"
       @update:search-query="searchQuery = $event"
       @update:selected-category="selectedCategory = $event"
       @update:selected-family="selectedFamily = $event"
+      @update:selected-price-range="selectedPriceRange = $event"
       @update:sort-by="sortBy = $event"
       @reset-filters="resetFilters"
     />
@@ -158,6 +160,7 @@ const router = useRouter();
 const searchQuery = ref('');
 const selectedCategory = ref<Category>('todos');
 const selectedFamily = ref('todas');
+const selectedPriceRange = ref('todos');
 const sortBy = ref('destacados');
 const currentPage = ref(1);
 const itemsPerPage = 8;
@@ -190,7 +193,7 @@ watch(
 );
 
 // Reset page when filters change
-watch([searchQuery, selectedCategory, selectedFamily, sortBy], () => {
+watch([searchQuery, selectedCategory, selectedFamily, selectedPriceRange, sortBy], () => {
   currentPage.value = 1;
 });
 
@@ -221,7 +224,7 @@ const categoryCounts = computed<Record<Category, number>>(() => {
 const filteredPerfumes = computed<Perfume[]>(() => {
   let result = [...perfumes.value];
 
-  // Filtro por texto
+  // Filtro por texto (Nombre de producto, notas, acordes, descripción, fecha)
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.toLowerCase().trim();
     result = result.filter(p => {
@@ -233,7 +236,8 @@ const filteredPerfumes = computed<Perfume[]>(() => {
         p.notas?.top?.some(n => n.toLowerCase().includes(q)) ||
         p.notas?.heart?.some(n => n.toLowerCase().includes(q)) ||
         p.notas?.base?.some(n => n.toLowerCase().includes(q)) ||
-        p.acordesPrincipales?.some(a => a.toLowerCase().includes(q))
+        p.acordesPrincipales?.some(a => a.toLowerCase().includes(q)) ||
+        p.creadoEn?.includes(q)
       );
     });
   }
@@ -243,18 +247,33 @@ const filteredPerfumes = computed<Perfume[]>(() => {
     result = result.filter(p => p.categoria === selectedCategory.value);
   }
 
-  // Filtro por familia olfativa
+  // Filtro por olor / familia olfativa
   if (selectedFamily.value !== 'todas') {
     result = result.filter(p => p.familia === selectedFamily.value);
   }
 
-  // Ordenamiento
+  // Filtro por rango de precio
+  if (selectedPriceRange.value === 'hasta-30000') {
+    result = result.filter(p => p.precio <= 30000);
+  } else if (selectedPriceRange.value === '30000-40000') {
+    result = result.filter(p => p.precio > 30000 && p.precio <= 40000);
+  } else if (selectedPriceRange.value === 'mas-40000') {
+    result = result.filter(p => p.precio > 40000);
+  }
+
+  // Ordenamiento por Precio, Fecha, Nombre Producto, Calificación o Stock
   switch (sortBy.value) {
     case 'precio-asc':
       result.sort((a, b) => a.precio - b.precio);
       break;
     case 'precio-desc':
       result.sort((a, b) => b.precio - a.precio);
+      break;
+    case 'fecha-desc':
+      result.sort((a, b) => (b.creadoEn || '').localeCompare(a.creadoEn || ''));
+      break;
+    case 'fecha-asc':
+      result.sort((a, b) => (a.creadoEn || '').localeCompare(b.creadoEn || ''));
       break;
     case 'nombre-asc':
       result.sort((a, b) => a.nombre.localeCompare(b.nombre));
@@ -297,6 +316,7 @@ const resetFilters = () => {
   searchQuery.value = '';
   selectedCategory.value = 'todos';
   selectedFamily.value = 'todas';
+  selectedPriceRange.value = 'todos';
   sortBy.value = 'destacados';
   currentPage.value = 1;
 };

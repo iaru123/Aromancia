@@ -1,55 +1,18 @@
 <template>
-  <div class="inline-flex items-center gap-2.5 cursor-pointer select-none group" :class="className">
-    <!-- Emblem Monogram: Flacon & Rose Petal -->
+  <div class="inline-flex items-center gap-2.5 sm:gap-3 cursor-pointer select-none group" :class="className">
+    <!-- Emblem Monogram: Logo oficial enviado por el usuario -->
     <div
-      class="relative flex items-center justify-center transition-transform duration-300 group-hover:scale-105"
-      :class="emblemSizes[size]"
+      class="relative flex items-center justify-center overflow-hidden rounded-full transition-transform duration-300 group-hover:scale-105 shrink-0 shadow-xs"
+      :class="[
+        emblemSizes[size],
+        variant === 'light' ? 'border border-[#EBD9D2]/30 bg-[#2F020D]' : 'border border-[#EEDCD5] bg-[#FCF9F7]'
+      ]"
     >
-      <svg
-        viewBox="0 0 64 64"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        class="w-full h-full drop-shadow-sm"
-      >
-        <!-- Outer faceted perfume silhouette -->
-        <rect
-          x="12"
-          y="18"
-          width="40"
-          height="40"
-          rx="6"
-          :stroke="accentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-        />
-        <!-- Flacon Collar & Cap -->
-        <path
-          d="M24 18V12C24 10.8954 24.8954 10 26 10H38C39.1046 10 40 10.8954 40 12V18"
-          :stroke="accentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-        />
-        <rect
-          x="28"
-          y="4"
-          width="8"
-          height="6"
-          rx="1"
-          :fill="accentColor"
-        />
-        <!-- Stylized Rose & Heart Note Motif -->
-        <path
-          d="M32 25C29 22 23 23 23 28C23 34 32 42 32 42C32 42 41 34 41 28C41 23 35 22 32 25Z"
-          :fill="accentColor"
-          fill-opacity="0.25"
-          :stroke="accentColor"
-          stroke-width="1.75"
-          stroke-linejoin="round"
-        />
-        <!-- Internal Radiant Facet -->
-        <circle cx="32" cy="30" r="2" :fill="accentColor" />
-        <line x1="32" y1="46" x2="32" y2="52" :stroke="accentColor" stroke-width="1.5" stroke-linecap="round" />
-      </svg>
+      <img
+        :src="logoImageSrc"
+        alt="Aromancia Logo Oficial"
+        class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+      />
     </div>
 
     <!-- Brand Logotype & Typography -->
@@ -92,15 +55,20 @@ const props = withDefaults(
   }
 );
 
-const accentColor = computed(() => {
-  if (props.variant === 'light') return '#FFFFFF';
-  return '#4A1521';
+// Selección de logo según el fondo (variante clara u oscura enviada por el usuario)
+const logoImageSrc = computed(() => {
+  if (props.variant === 'light') {
+    // Logo en tono rosa suave sobre fondo burdeos oscuro (para Footer u otros fondos oscuros)
+    return '/assets/aistudio/Captura_de_pantalla_2026-10-28_181316_8bde7209.png';
+  }
+  // Logo en tono burdeos sobre fondo rosa suave (para Navbar, header y fondos claros)
+  return '/assets/aistudio/Captura_de_pantalla_2026-10-28_181308_e37a7b91.png';
 });
 
 const emblemSizes = {
-  sm: 'w-7 h-7',
-  md: 'w-9 h-9',
-  lg: 'w-12 h-12'
+  sm: 'w-7 h-7 sm:w-8 sm:h-8',
+  md: 'w-10 h-10 sm:w-11 sm:h-11',
+  lg: 'w-12 h-12 sm:w-14 sm:h-14'
 };
 
 const textSizes = {

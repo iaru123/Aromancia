@@ -1,6 +1,6 @@
 <template>
-  <div class="bg-white rounded-2xl p-4 sm:p-6 border border-[#EEDCD5] shadow-sm space-y-5">
-    <!-- Top Row: Search Input + Sorting Selector -->
+  <div class="bg-white rounded-2xl p-4 sm:p-6 border border-[#EEDCD5] shadow-sm space-y-4">
+    <!-- Top Row: Input de búsqueda por Nombre de Producto o Nota de Olor -->
     <div class="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
       <!-- Search Input with v-model -->
       <div class="relative flex-1">
@@ -11,7 +11,7 @@
           type="text"
           :value="searchQuery"
           @input="emit('update:searchQuery', ($event.target as HTMLInputElement).value)"
-          placeholder="Buscar por nombre, nota (jazmín, oud, vainilla), familia..."
+          placeholder="Buscar por nombre de producto, notas de olor (vainilla, jazmín, cedro, rosa), fecha..."
           class="w-full pl-10 pr-10 py-3 text-xs sm:text-sm rounded-xl bg-[#FCF9F7] border border-[#EEDCD5] text-[#1B1C1B] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4A1521]/20 focus:border-[#4A1521] transition-all"
         />
         <button
@@ -25,23 +25,23 @@
         </button>
       </div>
 
-      <!-- Sorters and Olfactory Family Filters -->
-      <div class="flex items-center gap-2 flex-wrap">
-        <!-- Olfactory Family Select -->
-        <div class="relative shrink-0">
+      <!-- Selectores de Filtro por Olor, Precio y Fecha / Nombre -->
+      <div class="grid grid-cols-2 sm:flex sm:items-center gap-2">
+        <!-- 1. Filtro por Olor / Familia Olfativa -->
+        <div class="relative">
           <select
             :value="selectedFamily"
             @change="emit('update:selectedFamily', ($event.target as HTMLSelectElement).value)"
-            class="appearance-none pl-3 pr-8 py-3 text-xs rounded-xl bg-[#FCF9F7] border border-[#EEDCD5] text-[#4A1521] font-medium focus:outline-none focus:ring-2 focus:ring-[#4A1521]/20 focus:border-[#4A1521] cursor-pointer"
+            class="w-full sm:w-auto appearance-none pl-3 pr-8 py-3 text-xs rounded-xl bg-[#FCF9F7] border border-[#EEDCD5] text-[#4A1521] font-medium focus:outline-none focus:ring-2 focus:ring-[#4A1521]/20 focus:border-[#4A1521] cursor-pointer"
           >
-            <option value="todas">Familia Olfativa: Todas</option>
-            <option value="Floral">Floral</option>
-            <option value="Amaderado">Amaderado</option>
-            <option value="Oriental">Oriental</option>
-            <option value="Gourmand">Gourmand</option>
-            <option value="Chypre">Chypre</option>
-            <option value="Cítrico">Cítrico</option>
-            <option value="Cuero">Cuero</option>
+            <option value="todas">Olor / Familia: Todas</option>
+            <option value="Floral">Floral (Loto, Jazmín)</option>
+            <option value="Amaderado">Amaderado (Ébano, Cedro)</option>
+            <option value="Oriental">Oriental (Ámbar, Resinas)</option>
+            <option value="Gourmand">Gourmand (Vainilla)</option>
+            <option value="Chypre">Chypre (Musgo, Pachulí)</option>
+            <option value="Cítrico">Cítrico (Bergamota)</option>
+            <option value="Cuero">Cuero (Ahumado)</option>
             <option value="Sets y Regalos">Sets y Regalos</option>
           </select>
           <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-[18px]">
@@ -49,20 +49,39 @@
           </span>
         </div>
 
-        <!-- Sort Criteria Select -->
-        <div class="relative shrink-0">
+        <!-- 2. Filtro por Rango de Precio -->
+        <div class="relative">
+          <select
+            :value="selectedPriceRange"
+            @change="emit('update:selectedPriceRange', ($event.target as HTMLSelectElement).value)"
+            class="w-full sm:w-auto appearance-none pl-3 pr-8 py-3 text-xs rounded-xl bg-[#FCF9F7] border border-[#EEDCD5] text-[#4A1521] font-medium focus:outline-none focus:ring-2 focus:ring-[#4A1521]/20 focus:border-[#4A1521] cursor-pointer"
+          >
+            <option value="todos">Precio: Todos los rangos</option>
+            <option value="hasta-30000">Hasta $30.000</option>
+            <option value="30000-40000">$30.000 a $40.000</option>
+            <option value="mas-40000">Más de $40.000</option>
+          </select>
+          <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-[18px]">
+            arrow_drop_down
+          </span>
+        </div>
+
+        <!-- 3. Orden por Criterio: Nombre, Precio, Fecha -->
+        <div class="relative col-span-2 sm:col-span-1">
           <select
             :value="sortBy"
             @change="emit('update:sortBy', ($event.target as HTMLSelectElement).value)"
-            class="appearance-none pl-3 pr-8 py-3 text-xs rounded-xl bg-[#FCF9F7] border border-[#EEDCD5] text-[#4A1521] font-medium focus:outline-none focus:ring-2 focus:ring-[#4A1521]/20 focus:border-[#4A1521] cursor-pointer"
+            class="w-full sm:w-auto appearance-none pl-3 pr-8 py-3 text-xs rounded-xl bg-[#FCF9F7] border border-[#EEDCD5] text-[#4A1521] font-medium focus:outline-none focus:ring-2 focus:ring-[#4A1521]/20 focus:border-[#4A1521] cursor-pointer"
           >
             <option value="destacados">Ordenar: Recomendados</option>
+            <option value="fecha-desc">Fecha: Más recientes (Novedades)</option>
+            <option value="fecha-asc">Fecha: Más antiguos</option>
             <option value="precio-asc">Precio: Menor a Mayor</option>
             <option value="precio-desc">Precio: Mayor a Menor</option>
             <option value="nombre-asc">Nombre: A → Z</option>
             <option value="nombre-desc">Nombre: Z → A</option>
             <option value="calificacion">Mayor Calificación</option>
-            <option value="stock">Disponibilidad / Stock</option>
+            <option value="stock">Disponibilidad en Stock</option>
           </select>
           <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-[18px]">
             arrow_drop_down
@@ -71,30 +90,49 @@
       </div>
     </div>
 
-    <!-- Category Pill Filters with Counts -->
-    <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-      <button
-        v-for="cat in categories"
-        :key="cat.value"
-        type="button"
-        @click="emit('update:selectedCategory', cat.value)"
-        class="px-4 py-2 rounded-full text-xs font-medium uppercase tracking-wider whitespace-nowrap transition-all duration-200 cursor-pointer flex items-center gap-1.5"
-        :class="selectedCategory === cat.value
-          ? 'bg-[#4A1521] text-white shadow-sm'
-          : 'bg-[#FCF9F7] text-[#7D5260] hover:text-[#4A1521] hover:bg-[#EEDCD5]/60 border border-[#EEDCD5]'"
-      >
-        <span>{{ cat.label }}</span>
-        <span
-          class="text-[10px] px-1.5 py-0.2 rounded-full"
-          :class="selectedCategory === cat.value ? 'bg-white/20 text-white' : 'bg-black/5 text-[#7D5260]'"
+    <!-- Category Pill Filters with Counts (Filtro por Categoría) -->
+    <div class="space-y-1.5 pt-1">
+      <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <button
+          v-for="cat in categories"
+          :key="cat.value"
+          type="button"
+          @click="emit('update:selectedCategory', cat.value)"
+          class="px-4 py-2 rounded-full text-xs font-medium uppercase tracking-wider whitespace-nowrap transition-all duration-200 cursor-pointer flex items-center gap-1.5"
+          :class="selectedCategory === cat.value
+            ? 'bg-[#4A1521] text-white shadow-sm'
+            : 'bg-[#FCF9F7] text-[#7D5260] hover:text-[#4A1521] hover:bg-[#EEDCD5]/60 border border-[#EEDCD5]'"
         >
-          {{ categoryCounts[cat.value] || 0 }}
-        </span>
+          <span>{{ cat.label }}</span>
+          <span
+            class="text-[10px] px-1.5 py-0.2 rounded-full font-mono"
+            :class="selectedCategory === cat.value ? 'bg-white/20 text-white' : 'bg-black/5 text-[#7D5260]'"
+          >
+            {{ categoryCounts[cat.value] || 0 }}
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Chips de Olor populares para búsqueda rápida -->
+    <div class="flex items-center gap-1.5 overflow-x-auto pt-1 scrollbar-none text-xs">
+      <span class="text-[11px] font-semibold text-gray-500 shrink-0">Olores destacados:</span>
+      <button
+        v-for="aroma in popularScents"
+        :key="aroma"
+        type="button"
+        @click="toggleAroma(aroma)"
+        class="px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-colors cursor-pointer shrink-0"
+        :class="searchQuery.toLowerCase().includes(aroma.toLowerCase())
+          ? 'bg-[#4A1521] text-white border-[#4A1521]'
+          : 'bg-[#FCF9F7] text-gray-700 border-[#EEDCD5] hover:border-[#4A1521] hover:text-[#4A1521]'"
+      >
+        {{ aroma }}
       </button>
     </div>
 
     <!-- Active Filters Summary & Total Count -->
-    <div class="pt-2 border-t border-[#EEDCD5]/60 flex items-center justify-between text-xs text-[#7D5260]">
+    <div class="pt-2.5 border-t border-[#EEDCD5]/60 flex items-center justify-between text-xs text-[#7D5260] flex-wrap gap-2">
       <div class="flex items-center gap-2 flex-wrap">
         <span>Mostrando <strong>{{ totalCount }}</strong> fragancias</span>
         <span v-if="searchQuery" class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#EEDCD5] text-[#4A1521]">
@@ -102,18 +140,22 @@
           <button type="button" @click="emit('update:searchQuery', '')" class="hover:text-black">×</button>
         </span>
         <span v-if="selectedFamily !== 'todas'" class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#EEDCD5] text-[#4A1521]">
-          Familia: {{ selectedFamily }}
+          Olor: {{ selectedFamily }}
           <button type="button" @click="emit('update:selectedFamily', 'todas')" class="hover:text-black">×</button>
+        </span>
+        <span v-if="selectedPriceRange && selectedPriceRange !== 'todos'" class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#EEDCD5] text-[#4A1521]">
+          Precio: {{ formatPriceRange(selectedPriceRange) }}
+          <button type="button" @click="emit('update:selectedPriceRange', 'todos')" class="hover:text-black">×</button>
         </span>
       </div>
 
       <button
-        v-if="searchQuery || selectedCategory !== 'todos' || selectedFamily !== 'todas' || sortBy !== 'destacados'"
+        v-if="searchQuery || selectedCategory !== 'todos' || selectedFamily !== 'todas' || (selectedPriceRange && selectedPriceRange !== 'todos') || sortBy !== 'destacados'"
         type="button"
         @click="emit('resetFilters')"
         class="text-xs text-[#4A1521] hover:underline font-medium cursor-pointer"
       >
-        Restablecer filtros
+        Restablecer todos los filtros
       </button>
     </div>
   </div>
@@ -122,19 +164,26 @@
 <script setup lang="ts">
 import { Category } from '../types';
 
-defineProps<{
-  searchQuery: string;
-  selectedCategory: Category;
-  selectedFamily: string;
-  sortBy: string;
-  totalCount: number;
-  categoryCounts: Record<Category, number>;
-}>();
+const props = withDefaults(
+  defineProps<{
+    searchQuery: string;
+    selectedCategory: Category;
+    selectedFamily: string;
+    selectedPriceRange?: string;
+    sortBy: string;
+    totalCount: number;
+    categoryCounts: Record<Category, number>;
+  }>(),
+  {
+    selectedPriceRange: 'todos'
+  }
+);
 
 const emit = defineEmits<{
   (e: 'update:searchQuery', val: string): void;
   (e: 'update:selectedCategory', val: Category): void;
   (e: 'update:selectedFamily', val: string): void;
+  (e: 'update:selectedPriceRange', val: string): void;
   (e: 'update:sortBy', val: string): void;
   (e: 'resetFilters'): void;
 }>();
@@ -146,4 +195,27 @@ const categories: { label: string; value: Category }[] = [
   { label: 'Unisex', value: 'unisex' },
   { label: 'Sets & Discovery', value: 'sets' }
 ];
+
+const popularScents = ['Vainilla', 'Jazmín', 'Rosa', 'Sándalo', 'Loto', 'Bergamota', 'Oud', 'Cedro'];
+
+const toggleAroma = (aroma: string) => {
+  if (props.searchQuery.toLowerCase().includes(aroma.toLowerCase())) {
+    emit('update:searchQuery', '');
+  } else {
+    emit('update:searchQuery', aroma);
+  }
+};
+
+const formatPriceRange = (range: string) => {
+  switch (range) {
+    case 'hasta-30000':
+      return 'Hasta $30.000';
+    case '30000-40000':
+      return '$30.000 - $40.000';
+    case 'mas-40000':
+      return 'Más de $40.000';
+    default:
+      return 'Todos';
+  }
+};
 </script>
