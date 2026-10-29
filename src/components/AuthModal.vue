@@ -107,16 +107,19 @@
             <div class="space-y-2">
               <button
                 type="button"
-                @click="performGoogleLogin('Iaru Perfumes', 'iaru3000@gmail.com')"
+                @click="performGoogleLogin('Iaru Perfumes', 'iaru3000@gmail.com', 'admin')"
                 class="w-full p-2.5 rounded-lg bg-white border border-[#EEDCD5] hover:border-[#4A1521] text-left flex items-center justify-between transition-colors cursor-pointer group shadow-2xs hover:shadow-xs"
               >
                 <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">
+                  <div class="w-8 h-8 rounded-full bg-[#4A1521] text-white font-bold text-xs flex items-center justify-center">
                     I
                   </div>
                   <div>
-                    <p class="text-xs font-semibold text-gray-800 group-hover:text-[#4A1521]">Iaru Perfumes</p>
-                    <p class="text-[11px] text-gray-500">iaru3000@gmail.com</p>
+                    <div class="flex items-center gap-1.5">
+                      <p class="text-xs font-semibold text-gray-800 group-hover:text-[#4A1521]">Iaru Perfumes</p>
+                      <span class="text-[9px] font-bold bg-[#EEDCD5] text-[#4A1521] px-1.5 py-0.2 rounded uppercase">Admin</span>
+                    </div>
+                    <p class="text-[11px] text-gray-500">iaru3000@gmail.com · Puede Crear y Modificar Fragancias</p>
                   </div>
                 </div>
                 <span class="text-[11px] text-[#4A1521] font-semibold flex items-center gap-1 group-hover:underline">
@@ -127,7 +130,7 @@
 
               <button
                 type="button"
-                @click="performGoogleLogin('Valentina Rossi', 'valentina.rossi@gmail.com')"
+                @click="performGoogleLogin('Valentina Rossi', 'valentina.rossi@gmail.com', 'cliente')"
                 class="w-full p-2.5 rounded-lg bg-white border border-[#EEDCD5] hover:border-[#4A1521] text-left flex items-center justify-between transition-colors cursor-pointer group shadow-2xs hover:shadow-xs"
               >
                 <div class="flex items-center gap-3">
@@ -135,8 +138,11 @@
                     V
                   </div>
                   <div>
-                    <p class="text-xs font-semibold text-gray-800 group-hover:text-[#4A1521]">Valentina Rossi</p>
-                    <p class="text-[11px] text-gray-500">valentina.rossi@gmail.com</p>
+                    <div class="flex items-center gap-1.5">
+                      <p class="text-xs font-semibold text-gray-800 group-hover:text-[#4A1521]">Valentina Rossi</p>
+                      <span class="text-[9px] font-bold bg-emerald-50 text-emerald-700 px-1.5 py-0.2 rounded uppercase">Compradora</span>
+                    </div>
+                    <p class="text-[11px] text-gray-500">valentina.rossi@gmail.com · Historial de Compras</p>
                   </div>
                 </div>
                 <span class="text-[11px] text-[#4A1521] font-semibold flex items-center gap-1 group-hover:underline">
@@ -147,7 +153,7 @@
             </div>
 
             <!-- Ingreso directo con cualquier cuenta de Google -->
-            <div class="pt-2 border-t border-[#EEDCD5]/60 space-y-2">
+            <div class="pt-2.5 border-t border-[#EEDCD5]/60 space-y-2.5">
               <span class="text-[11px] font-semibold text-gray-700 block">
                 O ingresá con tu propio correo de Google (@gmail.com):
               </span>
@@ -168,19 +174,41 @@
                   <input
                     v-model="customGoogleEmail"
                     type="email"
-                    placeholder="ejemplo@gmail.com"
+                    placeholder="tu-correo@gmail.com"
                     class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-[#EEDCD5] bg-white focus:outline-none focus:border-[#4A1521]"
                   />
                 </div>
               </div>
+
+              <!-- Selector de Rol para cuenta Google -->
+              <div class="p-2.5 bg-white rounded-lg border border-[#EEDCD5] space-y-1">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-gray-500 block">Elegí tu rol en Aromancia:</span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
+                  <label
+                    class="p-2 rounded border cursor-pointer flex items-center gap-2 transition-colors text-xs"
+                    :class="customGoogleRole === 'admin' ? 'border-[#4A1521] bg-[#4A1521]/5 text-[#4A1521] font-semibold' : 'border-gray-200 text-gray-600'"
+                  >
+                    <input type="radio" v-model="customGoogleRole" value="admin" class="accent-[#4A1521]" />
+                    <span>Administrador (Modificar Catálogo)</span>
+                  </label>
+                  <label
+                    class="p-2 rounded border cursor-pointer flex items-center gap-2 transition-colors text-xs"
+                    :class="customGoogleRole === 'cliente' ? 'border-[#4A1521] bg-[#4A1521]/5 text-[#4A1521] font-semibold' : 'border-gray-200 text-gray-600'"
+                  >
+                    <input type="radio" v-model="customGoogleRole" value="cliente" class="accent-[#4A1521]" />
+                    <span>Comprador (Cliente)</span>
+                  </label>
+                </div>
+              </div>
+
               <button
                 type="button"
                 @click="handleCustomGoogleSubmit"
                 :disabled="!customGoogleEmail.trim()"
-                class="w-full py-2 bg-[#4A1521] hover:bg-[#2F020D] disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                class="w-full py-2.5 bg-[#4A1521] hover:bg-[#2F020D] disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs"
               >
                 <span class="material-symbols-outlined text-[16px]">how_to_reg</span>
-                <span>Ingresar con esta Cuenta de Google</span>
+                <span>Ingresar y Registrar en Supabase con Google</span>
               </button>
             </div>
           </div>
@@ -469,7 +497,8 @@ import { sanitizeName, isValidName, sanitizePhone, isValidPhone } from '../utils
 import {
   signInWithGoogleOAuth,
   signInWithSupabaseAuth,
-  signUpWithSupabaseAuth
+  signUpWithSupabaseAuth,
+  persistUserToSupabase
 } from '../services/supabaseService';
 
 const props = defineProps<{
@@ -491,6 +520,7 @@ const googleStatusMessage = ref('');
 const customGoogleEmail = ref('');
 const customGoogleName = ref('');
 const customGoogleNameError = ref('');
+const customGoogleRole = ref<'cliente' | 'admin'>('cliente');
 
 const nameError = ref('');
 const phoneError = ref('');
@@ -518,11 +548,21 @@ watch(
   () => props.initialMode,
   (mode) => {
     if (mode) currentTab.value = mode;
+    customGoogleRole.value = mode === 'admin' ? 'admin' : 'cliente';
     authError.value = '';
     showGooglePicker.value = false;
     googleStatusMessage.value = '';
   },
   { immediate: true }
+);
+
+watch(
+  () => currentTab.value,
+  (tab) => {
+    if (tab === 'admin') {
+      customGoogleRole.value = 'admin';
+    }
+  }
 );
 
 watch(
@@ -532,6 +572,9 @@ watch(
       authError.value = '';
       showGooglePicker.value = false;
       googleStatusMessage.value = '';
+      if (currentTab.value === 'admin') {
+        customGoogleRole.value = 'admin';
+      }
     }
   }
 );
@@ -573,7 +616,7 @@ const handleCustomGoogleSubmit = () => {
     return;
   }
   const nombre = customGoogleName.value.trim() || email.split('@')[0];
-  performGoogleLogin(nombre, email);
+  performGoogleLogin(nombre, email, customGoogleRole.value);
 };
 
 // Sanitización y validación reactiva de Teléfono (solo números)
@@ -636,37 +679,82 @@ const triggerGoogleAuth = async () => {
 };
 
 // Autenticación con Google (Vinculación a Supabase y Store)
-const performGoogleLogin = (nombre: string, email: string) => {
+const performGoogleLogin = async (nombre: string, email: string, forcedRole?: 'admin' | 'cliente') => {
   showGooglePicker.value = false;
   authError.value = '';
+
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanName = sanitizeName(nombre.trim()) || cleanEmail.split('@')[0];
+
+  // Determinar rol:
+  // Si se especifica forcedRole, se usa ese.
+  // Si estamos en la pestaña 'admin', o si el correo es iaru3000@gmail.com o admin@aromancia.com: admin
+  const role: 'admin' | 'cliente' =
+    forcedRole ||
+    (currentTab.value === 'admin' ||
+     cleanEmail === 'iaru3000@gmail.com' ||
+     cleanEmail.startsWith('admin')
+      ? 'admin'
+      : customGoogleRole.value);
+
   const currentUsers = getStoredUsers();
-  let user = currentUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+  let user = currentUsers.find(u => u.email.toLowerCase() === cleanEmail);
 
   if (!user) {
     user = {
       id: `google-${Date.now()}`,
-      nombre,
-      email,
-      rol: 'cliente',
+      nombre: cleanName,
+      email: cleanEmail,
+      rol: role,
       telefono: '541144556677',
       direccion: 'Dirección vinculada a Google',
       ciudad: 'CABA',
       creadoEn: new Date().toISOString().split('T')[0]
     };
-    try {
-      registerUser(user);
-    } catch {
-      loginUser(user);
-    }
   } else {
+    // Si entra con rol de admin, elevar permisos
+    if (role === 'admin') {
+      user.rol = 'admin';
+    }
+    if (cleanName && cleanName !== user.nombre) {
+      user.nombre = cleanName;
+    }
+  }
+
+  // 1. Registrar / Sincronizar en Supabase Auth
+  try {
+    await signUpWithSupabaseAuth(cleanEmail, 'GoogleUserPass2025!', cleanName, {
+      telefono: user.telefono,
+      direccion: user.direccion,
+      ciudad: user.ciudad
+    });
+  } catch (sbAuthErr) {
+    console.warn('Nota Supabase Auth en Google login:', sbAuthErr);
+  }
+
+  // 2. Persistir en la tabla public.users de Supabase
+  try {
+    await persistUserToSupabase(user);
+  } catch (dbErr) {
+    console.warn('Nota guardando en public.users de Supabase:', dbErr);
+  }
+
+  // 3. Iniciar sesión y guardar en memoria reactiva y LocalStorage
+  try {
+    registerUser(user);
+  } catch {
     loginUser(user);
   }
 
   showToast(
-    'Autenticación Exitosa con Google',
-    `¡Hola, ${nombre}! Tu cuenta ${email} fue vinculada correctamente.`
+    user.rol === 'admin' ? 'Acceso Administrador con Google' : 'Autenticación Exitosa con Google',
+    `¡Hola, ${cleanName}! Ingresaste como ${user.rol === 'admin' ? 'Administrador (Maestro Perfumista)' : 'Comprador'}.`
   );
+
   emit('close');
+  if (user.rol === 'admin') {
+    router.push('/admin');
+  }
 };
 
 const handleLogin = async () => {

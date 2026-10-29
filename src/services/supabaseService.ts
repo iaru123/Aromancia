@@ -262,9 +262,17 @@ export async function persistOrderToSupabase(order: Order): Promise<boolean> {
       .from('orders')
       .upsert(basePayload, { onConflict: 'id' });
 
+    // If foreign key constraint failed because user isn't in users table yet, retry with cliente_id: null
+    if (error && (error.code === '23503' || error.message?.toLowerCase().includes('foreign key') || error.message?.toLowerCase().includes('cliente_id'))) {
+      console.warn('cliente_id no encontrado en tabla users de Supabase, reintentando pedido sin FK...');
+      const fallbackFk = { ...basePayload, cliente_id: null };
+      const retryFk = await supabase.from('orders').upsert(fallbackFk, { onConflict: 'id' });
+      error = retryFk.error;
+    }
+
     // If schema includes items column, try with items
     if (error && error.message?.toLowerCase().includes('items')) {
-      const withItems = { ...basePayload, items: order.items };
+      const withItems = { ...basePayload, items: order.items, cliente_id: null };
       const retry = await supabase.from('orders').upsert(withItems, { onConflict: 'id' });
       error = retry.error;
     }
@@ -273,7 +281,7 @@ export async function persistOrderToSupabase(order: Order): Promise<boolean> {
       console.warn('Nota al guardar pedido en orders de Supabase:', error.message);
       // Fallback attempt with items column
       try {
-        await supabase.from('orders').upsert({ ...basePayload, items: order.items }, { onConflict: 'id' });
+        await supabase.from('orders').upsert({ ...basePayload, items: order.items, cliente_id: null }, { onConflict: 'id' });
       } catch {}
     }
 
@@ -397,12 +405,25 @@ export async function persistUserToSupabase(user: User): Promise<boolean> {
       creado_en: user.creadoEn || new Date().toISOString().split('T')[0]
     };
 
-    const { error } = await supabase
+    // 1. Try upsert with email conflict
+    let { error } = await supabase
       .from('users')
       .upsert(dbPayload, { onConflict: 'email' });
 
+    // 2. Fallback: try upsert with id conflict if email constraint is different
+    if (error && error.code !== '42501') {
+      const retryId = await supabase
+        .from('users')
+        .upsert(dbPayload, { onConflict: 'id' });
+      error = retryId.error;
+    }
+
     if (error) {
-      console.warn('Error al registrar usuario en Supabase:', error.message);
+      if (error.code === '42501') {
+        console.warn('RLS activo en Supabase: para guardar en la nube ejecuta el script SQL de permisos (DISABLE RLS). El usuario fue guardado localmente de forma segura.');
+      } else {
+        console.warn('Error al registrar usuario en Supabase:', error.message);
+      }
       return false;
     }
     return true;

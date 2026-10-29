@@ -202,7 +202,12 @@ export function syncUserFromSupabaseAuth(sbUser: any) {
     'Usuario Google';
   
   const role: 'admin' | 'cliente' =
-    email.toLowerCase() === 'admin@aromancia.com' ? 'admin' : 'cliente';
+    email.toLowerCase() === 'admin@aromancia.com' ||
+    email.toLowerCase() === 'iaru3000@gmail.com' ||
+    email.toLowerCase().startsWith('admin') ||
+    sbUser.user_metadata?.role === 'admin'
+      ? 'admin'
+      : 'cliente';
 
   const user: User = {
     id: sbUser.id || `google-${Date.now()}`,
