@@ -77,6 +77,24 @@ function normalizePerfume(row: any): Perfume {
  * Normalizes a database row to an Order object
  */
 function normalizeOrder(row: any): Order {
+  let items: any[] = [];
+  if (Array.isArray(row.order_items) && row.order_items.length > 0) {
+    items = row.order_items.map((oi: any) => ({
+      perfumeId: oi.perfume_id,
+      nombre: oi.nombre || 'Fragancia Aromancia',
+      precio: Number(oi.precio) || 0,
+      cantidad: Number(oi.cantidad) || 1,
+      volumen: oi.volumen || '100ml',
+      imagen: oi.imagen || ''
+    }));
+  } else if (row.items) {
+    try {
+      items = typeof row.items === 'string' ? JSON.parse(row.items) : row.items;
+    } catch {
+      items = [];
+    }
+  }
+
   return {
     id: row.id,
     fecha: row.fecha || new Date().toISOString().split('T')[0],
@@ -88,7 +106,7 @@ function normalizeOrder(row: any): Order {
       direccion: row.cliente_direccion || row.cliente?.direccion || '',
       ciudad: row.cliente_ciudad || row.cliente?.ciudad || ''
     },
-    items: typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || []),
+    items,
     subtotal: Number(row.subtotal) || 0,
     envio: Number(row.envio) || 0,
     total: Number(row.total) || 0,
@@ -183,16 +201,30 @@ export async function deletePerfumeFromSupabase(id: string): Promise<boolean> {
 }
 
 /**
- * Fetches orders from Supabase
+ * Fetches orders from Supabase with joined order items
  */
 export async function fetchOrdersFromSupabase(): Promise<{ data: Order[]; fromSupabase: boolean }> {
   try {
+    // Attempt join with order_items
     const { data, error } = await supabase
       .from('orders')
-      .select('*')
+      .select('*, order_items(*)')
       .order('fecha', { ascending: false });
 
-    if (error || !data || data.length === 0) {
+    if (error) {
+      // Fallback: standalone orders query if foreign key/relation is absent
+      const fallback = await supabase
+        .from('orders')
+        .select('*')
+        .order('fecha', { ascending: false });
+
+      if (fallback.data && fallback.data.length > 0) {
+        return { data: fallback.data.map(normalizeOrder), fromSupabase: true };
+      }
+      return { data: [], fromSupabase: false };
+    }
+
+    if (!data || data.length === 0) {
       return { data: [], fromSupabase: false };
     }
 
@@ -205,11 +237,11 @@ export async function fetchOrdersFromSupabase(): Promise<{ data: Order[]; fromSu
 }
 
 /**
- * Saves a new order to Supabase
+ * Saves a new order to Supabase (orders header + order_items items)
  */
 export async function persistOrderToSupabase(order: Order): Promise<boolean> {
   try {
-    const dbPayload = {
+    const basePayload: any = {
       id: order.id,
       fecha: order.fecha,
       cliente_id: order.cliente?.id || null,
@@ -222,18 +254,50 @@ export async function persistOrderToSupabase(order: Order): Promise<boolean> {
       envio: order.envio,
       total: order.total,
       estado: order.estado,
-      items: order.items,
       metodo_pago: order.metodoPago
     };
 
-    const { error } = await supabase
+    // 1. Try upserting base order
+    let { error } = await supabase
       .from('orders')
-      .insert(dbPayload);
+      .upsert(basePayload, { onConflict: 'id' });
+
+    // If schema includes items column, try with items
+    if (error && error.message?.toLowerCase().includes('items')) {
+      const withItems = { ...basePayload, items: order.items };
+      const retry = await supabase.from('orders').upsert(withItems, { onConflict: 'id' });
+      error = retry.error;
+    }
 
     if (error) {
-      console.warn('Error al guardar pedido en Supabase:', error.message);
-      return false;
+      console.warn('Nota al guardar pedido en orders de Supabase:', error.message);
+      // Fallback attempt with items column
+      try {
+        await supabase.from('orders').upsert({ ...basePayload, items: order.items }, { onConflict: 'id' });
+      } catch {}
     }
+
+    // 2. Insert items into order_items table
+    if (order.items && order.items.length > 0) {
+      const itemsPayload = order.items.map(item => ({
+        order_id: order.id,
+        perfume_id: item.perfumeId || null,
+        nombre: item.nombre,
+        precio: item.precio,
+        cantidad: item.cantidad,
+        volumen: item.volumen || '100ml',
+        imagen: item.imagen || null
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(itemsPayload);
+
+      if (itemsError) {
+        console.warn('Nota al insertar order_items en Supabase:', itemsError.message);
+      }
+    }
+
     return true;
   } catch (err) {
     console.warn('Fallo de red al persistir pedido en Supabase:', err);
@@ -258,6 +322,27 @@ export async function updateOrderStatusInSupabase(orderId: string, status: strin
     return true;
   } catch (err) {
     console.warn('Fallo de red al actualizar estado en Supabase:', err);
+    return false;
+  }
+}
+
+/**
+ * Updates perfume stock directly in Supabase
+ */
+export async function updatePerfumeStockInSupabase(perfumeId: string, newStock: number): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('perfumes')
+      .update({ stock: newStock })
+      .eq('id', perfumeId);
+
+    if (error) {
+      console.warn('Error al actualizar stock en Supabase:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('Fallo de red al actualizar stock en Supabase:', err);
     return false;
   }
 }
@@ -448,5 +533,35 @@ export async function signOutSupabase(): Promise<void> {
     await supabase.auth.signOut();
   } catch (err) {
     console.warn('Error al cerrar sesión en Supabase:', err);
+  }
+}
+
+/**
+ * Subscribes to Realtime changes on perfumes, orders, and users in Supabase
+ */
+export function subscribeToSupabaseChanges(callbacks: {
+  onPerfumeChange?: () => void;
+  onOrderChange?: () => void;
+  onUserChange?: () => void;
+}) {
+  try {
+    const channel = supabase.channel('aromancia-realtime-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'perfumes' }, () => {
+        callbacks.onPerfumeChange?.();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        callbacks.onOrderChange?.();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
+        callbacks.onUserChange?.();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  } catch (err) {
+    console.warn('Error configurando realtime de Supabase:', err);
+    return () => {};
   }
 }

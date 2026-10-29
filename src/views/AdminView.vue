@@ -36,32 +36,6 @@
         </div>
 
         <div class="relative z-10 flex flex-wrap items-center gap-3 shrink-0">
-          <!-- Supabase Live Connection Pill -->
-          <div
-            class="px-3.5 py-2 rounded-xl bg-black/30 border border-white/20 text-xs text-white/90 flex items-center gap-2 shadow-inner"
-            :title="supabaseStatus.message"
-          >
-            <span
-              class="w-2.5 h-2.5 rounded-full"
-              :class="supabaseStatus.connected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'"
-            ></span>
-            <span class="font-mono text-[11px] font-semibold">
-              {{ isSupabaseSyncing ? 'Sincronizando...' : 'Supabase Conectado' }}
-            </span>
-            <button
-              type="button"
-              @click="reSyncWithSupabase"
-              :disabled="isSupabaseSyncing"
-              class="p-1 hover:bg-white/20 rounded text-white/80 hover:text-white transition-colors cursor-pointer"
-              title="Volver a sincronizar información con Supabase"
-            >
-              <span
-                class="material-symbols-outlined text-[14px]"
-                :class="{ 'animate-spin': isSupabaseSyncing }"
-              >sync</span>
-            </button>
-          </div>
-
           <router-link
             to="/alta"
             class="px-5 py-3 rounded-lg bg-white text-[#4A1521] hover:bg-[#FCF9F7] text-xs font-sans font-semibold uppercase tracking-wider flex items-center gap-2 shadow-md active:scale-95 transition-all"
@@ -481,18 +455,10 @@ import {
   updatePerfumeStock,
   deletePerfumeRecord,
   initStore,
-  showToast,
-  supabaseStatus,
-  isSupabaseSyncing
+  showToast
 } from '../store';
 import { Perfume, Order } from '../types';
 import { generateSupabaseSQL, downloadSupabaseSQLFile } from '../services/sqlService';
-
-const reSyncWithSupabase = async () => {
-  showToast('Sincronizando con Supabase...', 'Consultando fragancias, pedidos y usuarios en la nube.');
-  await initStore();
-  showToast('Sincronización Completada', supabaseStatus.value.message);
-};
 
 onMounted(() => {
   if (perfumes.value.length === 0) {

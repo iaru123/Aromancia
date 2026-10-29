@@ -124,16 +124,22 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
 
--- Perfumes: Lectura pública para cualquier visitante o comprador
+-- Políticas completas (Lectura, Inserción, Actualización, Eliminación)
 DROP POLICY IF EXISTS "Lectura pública de fragancias" ON public.perfumes;
-CREATE POLICY "Lectura pública de fragancias" ON public.perfumes FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Permitir todo perfumes" ON public.perfumes;
+CREATE POLICY "Permitir todo perfumes" ON public.perfumes FOR ALL USING (true) WITH CHECK (true);
 
--- Permisos de lectura de pedidos para administradores y dueños
+DROP POLICY IF EXISTS "Lectura de usuarios" ON public.users;
+DROP POLICY IF EXISTS "Permitir todo usuarios" ON public.users;
+CREATE POLICY "Permitir todo usuarios" ON public.users FOR ALL USING (true) WITH CHECK (true);
+
 DROP POLICY IF EXISTS "Lectura de pedidos autenticados" ON public.orders;
-CREATE POLICY "Lectura de pedidos autenticados" ON public.orders FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Permitir todo orders" ON public.orders;
+CREATE POLICY "Permitir todo orders" ON public.orders FOR ALL USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Lectura de items de pedidos" ON public.order_items;
-CREATE POLICY "Lectura de items de pedidos" ON public.order_items FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Permitir todo order_items" ON public.order_items;
+CREATE POLICY "Permitir todo order_items" ON public.order_items FOR ALL USING (true) WITH CHECK (true);
 
 -- ====================================================================
 -- 7. INSERCIÓN DE DATOS: USERS (ADMINISTRADOR Y CLIENTES)

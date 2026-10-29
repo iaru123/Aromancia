@@ -92,17 +92,25 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
 
+-- Políticas de lectura y escritura completa para perfumes (Catálogo)
 DROP POLICY IF EXISTS "Lectura pública de fragancias" ON public.perfumes;
-CREATE POLICY "Lectura pública de fragancias" ON public.perfumes FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Permitir todo perfumes" ON public.perfumes;
+CREATE POLICY "Permitir todo perfumes" ON public.perfumes FOR ALL USING (true) WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Lectura de pedidos autenticados" ON public.orders;
-CREATE POLICY "Lectura de pedidos autenticados" ON public.orders FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "Lectura de items de pedidos" ON public.order_items;
-CREATE POLICY "Lectura de items de pedidos" ON public.order_items FOR SELECT USING (true);
-
+-- Políticas de lectura y escritura completa para usuarios (Clientes y Admin)
 DROP POLICY IF EXISTS "Lectura de usuarios" ON public.users;
-CREATE POLICY "Lectura de usuarios" ON public.users FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Permitir todo usuarios" ON public.users;
+CREATE POLICY "Permitir todo usuarios" ON public.users FOR ALL USING (true) WITH CHECK (true);
+
+-- Políticas de lectura y escritura completa para pedidos (Compras)
+DROP POLICY IF EXISTS "Lectura de pedidos autenticados" ON public.orders;
+DROP POLICY IF EXISTS "Permitir todo orders" ON public.orders;
+CREATE POLICY "Permitir todo orders" ON public.orders FOR ALL USING (true) WITH CHECK (true);
+
+-- Políticas de lectura y escritura completa para items de pedidos
+DROP POLICY IF EXISTS "Lectura de items de pedidos" ON public.order_items;
+DROP POLICY IF EXISTS "Permitir todo order_items" ON public.order_items;
+CREATE POLICY "Permitir todo order_items" ON public.order_items FOR ALL USING (true) WITH CHECK (true);
 
 -- ====================================================================
 -- 7. INSERCIÓN DE DATOS INICIALES: USERS

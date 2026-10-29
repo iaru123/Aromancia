@@ -2,6 +2,7 @@ import { ref, computed } from 'vue';
 import { Perfume, CartItem, User, Order } from '../types';
 import {
   getStoredPerfumes,
+  saveStoredPerfumes,
   addStoredPerfume,
   updateStoredPerfume,
   deleteStoredPerfume,
@@ -14,6 +15,7 @@ import {
   saveStoredCurrentUser,
   saveStoredUsers,
   getStoredOrders,
+  saveStoredOrders,
   addStoredOrder,
   updateStoredOrderStatus
 } from '../services/storage';
@@ -27,9 +29,11 @@ import {
   fetchOrdersFromSupabase,
   persistOrderToSupabase,
   updateOrderStatusInSupabase,
+  updatePerfumeStockInSupabase,
   fetchUsersFromSupabase,
   persistUserToSupabase,
   signOutSupabase,
+  subscribeToSupabaseChanges,
   SupabaseStatus
 } from '../services/supabaseService';
 
@@ -124,12 +128,15 @@ export async function initStore() {
 
     if (perfumesRes.status === 'fulfilled' && perfumesRes.value.fromSupabase) {
       perfumes.value = perfumesRes.value.data;
+      saveStoredPerfumes(perfumesRes.value.data);
     }
     if (ordersRes.status === 'fulfilled' && ordersRes.value.fromSupabase && ordersRes.value.data.length > 0) {
       orders.value = ordersRes.value.data;
+      saveStoredOrders(ordersRes.value.data);
     }
     if (usersRes.status === 'fulfilled' && usersRes.value.fromSupabase && usersRes.value.data.length > 0) {
       users.value = usersRes.value.data;
+      saveStoredUsers(usersRes.value.data);
     }
   } catch (e) {
     console.warn('Error en sincronización inicial con Supabase:', e);
@@ -151,6 +158,35 @@ export async function initStore() {
     });
   } catch (authErr) {
     console.warn('Error al verificar sesión de Supabase Auth:', authErr);
+  }
+
+  // 5. Escuchar cambios en tiempo real en Supabase (Perfumes, Pedidos, Usuarios)
+  try {
+    subscribeToSupabaseChanges({
+      onPerfumeChange: async () => {
+        const res = await fetchPerfumesFromSupabase();
+        if (res.fromSupabase) {
+          perfumes.value = res.data;
+          saveStoredPerfumes(res.data);
+        }
+      },
+      onOrderChange: async () => {
+        const res = await fetchOrdersFromSupabase();
+        if (res.fromSupabase) {
+          orders.value = res.data;
+          saveStoredOrders(res.data);
+        }
+      },
+      onUserChange: async () => {
+        const res = await fetchUsersFromSupabase();
+        if (res.fromSupabase) {
+          users.value = res.data;
+          saveStoredUsers(res.data);
+        }
+      }
+    });
+  } catch (syncErr) {
+    console.warn('Error en suscripción realtime:', syncErr);
   }
 }
 
@@ -365,6 +401,25 @@ export function checkout(clientInfo: {
   // Async sync to Supabase orders table
   persistOrderToSupabase(newOrder);
 
+  // Sync / create buyer in users table in Supabase
+  let buyer = users.value.find(u => u.email.toLowerCase() === clientInfo.email.toLowerCase());
+  if (!buyer) {
+    buyer = {
+      id: currentUser.value?.id || `user-${Date.now()}`,
+      nombre: clientInfo.nombre,
+      email: clientInfo.email.toLowerCase(),
+      rol: 'cliente',
+      telefono: clientInfo.telefono,
+      direccion: clientInfo.direccion,
+      ciudad: clientInfo.ciudad,
+      creadoEn: new Date().toISOString().split('T')[0]
+    };
+    const updatedUsers = [...users.value, buyer];
+    users.value = updatedUsers;
+    saveStoredUsers(updatedUsers);
+  }
+  persistUserToSupabase(buyer);
+
   clearCart();
   cartDrawerOpen.value = false;
   showToast(
@@ -420,6 +475,7 @@ export function updatePerfumeStock(perfumeId: string, newStock: number) {
     const updated = { ...p, stock: newStock };
     updateStoredPerfume(updated);
     perfumes.value = getStoredPerfumes();
+    updatePerfumeStockInSupabase(perfumeId, newStock);
     persistPerfumeToSupabase(updated);
   }
 }
