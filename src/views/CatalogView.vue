@@ -247,7 +247,7 @@ const filteredPerfumes = computed<Perfume[]>(() => {
     result = result.filter(p => p.categoria === selectedCategory.value);
   }
 
-  // Filtro por olor / familia olfativa
+  // Filtro por aroma / familia olfativa
   if (selectedFamily.value !== 'todas') {
     result = result.filter(p => p.familia === selectedFamily.value);
   }

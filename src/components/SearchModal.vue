@@ -77,19 +77,19 @@
             </div>
           </div>
 
-          <!-- FILTROS COMPLEMENTARIOS: NOMBRE, PRECIO, FECHA Y OLOR -->
+          <!-- FILTROS COMPLEMENTARIOS: NOMBRE, PRECIO, FECHA Y AROMA -->
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-[#EEDCD5]/70">
-            <!-- 1. FILTRO POR OLOR / FAMILIA OLFATIVA -->
+            <!-- 1. FILTRO POR AROMA / FAMILIA OLFATIVA -->
             <div class="space-y-1">
               <label class="block text-[10px] font-semibold uppercase tracking-wider text-[#4A1521] flex items-center gap-1">
                 <span class="material-symbols-outlined text-[13px]">psychiatry</span>
-                <span>Olor / Familia</span>
+                <span>Aroma / Familia</span>
               </label>
               <select
-                v-model="selectedOlor"
+                v-model="selectedAroma"
                 class="w-full text-xs py-1.5 px-2 rounded-lg bg-white border border-[#EEDCD5] text-[#4A1521] focus:outline-none focus:border-[#4A1521] cursor-pointer"
               >
-                <option value="todos">Todos los olores</option>
+                <option value="todos">Todos los aromas</option>
                 <option value="Floral">Floral (Loto, Jazmín, Rosa)</option>
                 <option value="Amaderado">Amaderado (Ébano, Cedro)</option>
                 <option value="Oriental">Oriental (Ámbar, Incienso)</option>
@@ -154,9 +154,9 @@
             </div>
           </div>
 
-          <!-- CHIPS DE OLOR RÁPIDOS -->
+          <!-- CHIPS DE AROMA RÁPIDOS -->
           <div class="flex items-center gap-1.5 overflow-x-auto pt-1 scrollbar-none">
-            <span class="text-[10px] uppercase font-semibold text-gray-400 shrink-0">Olores populares:</span>
+            <span class="text-[10px] uppercase font-semibold text-gray-400 shrink-0">Aromas populares:</span>
             <button
               v-for="aroma in popularScents"
               :key="aroma"
@@ -179,7 +179,7 @@
               <span class="material-symbols-outlined text-[24px]">search_off</span>
             </div>
             <p class="text-xs text-gray-500 font-light max-w-sm mx-auto">
-              No encontramos fragancias que coincidan con los filtros seleccionados (Categoría: <strong>{{ selectedCategory }}</strong>, Olor: <strong>{{ selectedOlor }}</strong>, Precio: <strong>{{ selectedPrecio }}</strong>, Fecha: <strong>{{ selectedFecha }}</strong>).
+              No encontramos fragancias que coincidan con los filtros seleccionados (Categoría: <strong>{{ selectedCategory }}</strong>, Aroma: <strong>{{ selectedAroma }}</strong>, Precio: <strong>{{ selectedPrecio }}</strong>, Fecha: <strong>{{ selectedFecha }}</strong>).
             </p>
             <button
               type="button"
@@ -214,7 +214,7 @@
                 </span>
               </div>
 
-              <!-- Familia y Notas de Olor -->
+              <!-- Familia y Notas de Aroma -->
               <p class="text-[11px] text-[#7D5260] flex items-center gap-1.5 truncate">
                 <span class="material-symbols-outlined text-[13px] text-[#4A1521]">psychiatry</span>
                 <span>Familia: <strong class="text-gray-800">{{ perfume.familia }}</strong></span>
@@ -282,7 +282,7 @@ const inputRef = ref<HTMLInputElement | null>(null);
 // Search & Filter State
 const query = ref('');
 const selectedCategory = ref<Category>('todos');
-const selectedOlor = ref<string>('todos');
+const selectedAroma = ref<string>('todos');
 const selectedPrecio = ref<string>('todos');
 const selectedFecha = ref<string>('todas');
 const selectedNombre = ref<string>('relevancia');
@@ -318,7 +318,7 @@ const hasActiveFilters = computed(() => {
   return (
     query.value.trim() !== '' ||
     selectedCategory.value !== 'todos' ||
-    selectedOlor.value !== 'todos' ||
+    selectedAroma.value !== 'todos' ||
     selectedPrecio.value !== 'todos' ||
     selectedFecha.value !== 'todas' ||
     selectedNombre.value !== 'relevancia'
@@ -328,7 +328,7 @@ const hasActiveFilters = computed(() => {
 const resetAllFilters = () => {
   query.value = '';
   selectedCategory.value = 'todos';
-  selectedOlor.value = 'todos';
+  selectedAroma.value = 'todos';
   selectedPrecio.value = 'todos';
   selectedFecha.value = 'todas';
   selectedNombre.value = 'relevancia';
@@ -360,9 +360,9 @@ const filtered = computed(() => {
     list = list.filter(p => p.categoria === selectedCategory.value);
   }
 
-  // 2. Filtro por Olor / Familia Olfativa
-  if (selectedOlor.value !== 'todos') {
-    list = list.filter(p => p.familia === selectedOlor.value);
+  // 2. Filtro por Aroma / Familia Olfativa
+  if (selectedAroma.value !== 'todos') {
+    list = list.filter(p => p.familia === selectedAroma.value);
   }
 
   // 3. Filtro por Rango de Precio

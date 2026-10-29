@@ -1,6 +1,6 @@
 <template>
   <div class="bg-white rounded-2xl p-4 sm:p-6 border border-[#EEDCD5] shadow-sm space-y-4">
-    <!-- Top Row: Input de búsqueda por Nombre de Producto o Nota de Olor -->
+    <!-- Top Row: Input de búsqueda por Nombre de Producto o Nota de Aroma -->
     <div class="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
       <!-- Search Input with v-model -->
       <div class="relative flex-1">
@@ -11,7 +11,7 @@
           type="text"
           :value="searchQuery"
           @input="emit('update:searchQuery', ($event.target as HTMLInputElement).value)"
-          placeholder="Buscar por nombre de producto, notas de olor (vainilla, jazmín, cedro, rosa), fecha..."
+          placeholder="Buscar por nombre de producto, notas de aroma (vainilla, jazmín, cedro, rosa), fecha..."
           class="w-full pl-10 pr-10 py-3 text-xs sm:text-sm rounded-xl bg-[#FCF9F7] border border-[#EEDCD5] text-[#1B1C1B] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4A1521]/20 focus:border-[#4A1521] transition-all"
         />
         <button
@@ -25,16 +25,16 @@
         </button>
       </div>
 
-      <!-- Selectores de Filtro por Olor, Precio y Fecha / Nombre -->
+      <!-- Selectores de Filtro por Aroma, Precio y Fecha / Nombre -->
       <div class="grid grid-cols-2 sm:flex sm:items-center gap-2">
-        <!-- 1. Filtro por Olor / Familia Olfativa -->
+        <!-- 1. Filtro por Aroma / Familia Olfativa -->
         <div class="relative">
           <select
             :value="selectedFamily"
             @change="emit('update:selectedFamily', ($event.target as HTMLSelectElement).value)"
             class="w-full sm:w-auto appearance-none pl-3 pr-8 py-3 text-xs rounded-xl bg-[#FCF9F7] border border-[#EEDCD5] text-[#4A1521] font-medium focus:outline-none focus:ring-2 focus:ring-[#4A1521]/20 focus:border-[#4A1521] cursor-pointer"
           >
-            <option value="todas">Olor / Familia: Todas</option>
+            <option value="todas">Aroma / Familia: Todas</option>
             <option value="Floral">Floral (Loto, Jazmín)</option>
             <option value="Amaderado">Amaderado (Ébano, Cedro)</option>
             <option value="Oriental">Oriental (Ámbar, Resinas)</option>
@@ -114,9 +114,9 @@
       </div>
     </div>
 
-    <!-- Chips de Olor populares para búsqueda rápida -->
+    <!-- Chips de Aroma populares para búsqueda rápida -->
     <div class="flex items-center gap-1.5 overflow-x-auto pt-1 scrollbar-none text-xs">
-      <span class="text-[11px] font-semibold text-gray-500 shrink-0">Olores destacados:</span>
+      <span class="text-[11px] font-semibold text-gray-500 shrink-0">Aromas destacados:</span>
       <button
         v-for="aroma in popularScents"
         :key="aroma"
@@ -140,7 +140,7 @@
           <button type="button" @click="emit('update:searchQuery', '')" class="hover:text-black">×</button>
         </span>
         <span v-if="selectedFamily !== 'todas'" class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#EEDCD5] text-[#4A1521]">
-          Olor: {{ selectedFamily }}
+          Aroma: {{ selectedFamily }}
           <button type="button" @click="emit('update:selectedFamily', 'todas')" class="hover:text-black">×</button>
         </span>
         <span v-if="selectedPriceRange && selectedPriceRange !== 'todos'" class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#EEDCD5] text-[#4A1521]">
