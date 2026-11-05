@@ -257,29 +257,6 @@
                 />
               </div>
 
-              <!-- Quick Demo Users for Easy Teacher Testing -->
-              <div class="bg-[#FCF9F7] p-3 rounded-xl border border-[#EEDCD5] space-y-2">
-                <span class="text-[11px] font-semibold text-[#4A1521] uppercase tracking-wider block">
-                  Accesos de Prueba Rápidos (Programación II):
-                </span>
-                <div class="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    @click="fillDemo('valentina.rossi@gmail.com', '123')"
-                    class="px-2.5 py-1 text-[11px] rounded-lg bg-white border border-[#EEDCD5] text-gray-700 hover:border-[#4A1521] hover:text-[#4A1521] transition-colors cursor-pointer"
-                  >
-                    Cliente: Valentina Rossi
-                  </button>
-                  <button
-                    type="button"
-                    @click="fillDemo('esteban.m@outlook.com', '123')"
-                    class="px-2.5 py-1 text-[11px] rounded-lg bg-white border border-[#EEDCD5] text-gray-700 hover:border-[#4A1521] hover:text-[#4A1521] transition-colors cursor-pointer"
-                  >
-                    Cliente: Esteban Morales
-                  </button>
-                </div>
-              </div>
-
               <button
                 type="submit"
                 class="w-full py-3 rounded-xl bg-[#4A1521] text-white hover:bg-[#2F020D] text-xs font-semibold uppercase tracking-wider transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
@@ -557,11 +534,6 @@ const handlePhoneInput = (e: Event) => {
   } else {
     phoneError.value = '';
   }
-};
-
-const fillDemo = (email: string, pass: string) => {
-  loginForm.email = email;
-  loginForm.password = pass;
 };
 
 /**
