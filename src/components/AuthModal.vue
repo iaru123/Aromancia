@@ -24,20 +24,18 @@
               Atelier Aromancia · Portal de Usuarios
             </span>
             <h3 class="font-serif text-2xl text-white font-medium">
-              {{ currentTab === 'admin' ? 'Portal de Administrador' : currentTab === 'register' ? 'Crear Cuenta de Comprador' : 'Bienvenida/o a Aromancia' }}
+              {{ currentTab === 'register' ? 'Crear Cuenta de Comprador' : 'Bienvenida/o a Aromancia' }}
             </h3>
             <p class="text-xs text-[#EBD9D2]/80 font-light leading-relaxed">
-              {{ currentTab === 'admin'
-                ? 'Ingresá tus credenciales de perfumista maestro para gestionar fragancias y pedidos.'
-                : currentTab === 'register'
+              {{ currentTab === 'register'
                 ? 'Registrate con Google o correo para una experiencia de compra personalizada y seguimiento de tus pedidos.'
-                : 'Iniciá sesión con tu cuenta de Google o correo para acceder a tu historial de compras y fragancias favoritas.' }}
+                : 'Iniciá sesión con tu cuenta de Google o correo para acceder a tu historial de compras y panel del Atelier.' }}
             </p>
           </div>
         </div>
 
         <!-- Mode Tabs -->
-        <div class="grid grid-cols-3 border-b border-[#EEDCD5] bg-[#FCF9F7]">
+        <div class="grid grid-cols-2 border-b border-[#EEDCD5] bg-[#FCF9F7]">
           <button
             type="button"
             @click="currentTab = 'login'"
@@ -53,15 +51,6 @@
             :class="currentTab === 'register' ? 'border-[#4A1521] text-[#4A1521] bg-white' : 'border-transparent text-gray-500 hover:text-[#4A1521]'"
           >
             Registrarse
-          </button>
-          <button
-            type="button"
-            @click="currentTab = 'admin'"
-            class="py-3 text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer border-b-2 flex items-center justify-center gap-1"
-            :class="currentTab === 'admin' ? 'border-[#4A1521] text-[#4A1521] bg-white font-bold' : 'border-transparent text-gray-500 hover:text-[#4A1521]'"
-          >
-            <span class="material-symbols-outlined text-[14px]">shield</span>
-            <span>Admin</span>
           </button>
         </div>
 
@@ -434,53 +423,6 @@
               </button>
             </form>
           </div>
-
-          <!-- TAB 3: ACCESO ADMINISTRADOR REQUERIDO -->
-          <form v-else-if="currentTab === 'admin'" @submit.prevent="handleAdminLogin" class="space-y-4">
-            <div class="p-3 bg-[#4A1521]/10 border border-[#4A1521]/20 rounded-xl space-y-1">
-              <div class="flex items-center gap-2 text-xs font-bold text-[#4A1521]">
-                <span class="material-symbols-outlined text-[16px]">verified_user</span>
-                <span>Portal de Atelier Aromancia</span>
-              </div>
-              <p class="text-[11px] text-gray-600 leading-relaxed font-light">
-                Al ingresar como Administrador se habilitarán en la barra de navegación:
-                <strong class="text-[#4A1521] block mt-0.5">• + Nueva Fragancia (Alta/Edición)</strong>
-                <strong class="text-[#4A1521] block">• Panel de Administrador (Clientes, Pedidos, Productos y Exportación SQL)</strong>
-              </p>
-            </div>
-
-            <div class="space-y-1">
-              <label class="block text-xs font-semibold uppercase tracking-wider text-[#4A1521]">
-                Email de Administrador
-              </label>
-              <input
-                v-model="adminForm.email"
-                type="email"
-                required
-                class="w-full px-3.5 py-2.5 rounded-xl border border-[#EEDCD5] text-sm text-[#1B1C1B] bg-[#FCF9F7] focus:outline-none focus:border-[#4A1521]"
-              />
-            </div>
-
-            <div class="space-y-1">
-              <label class="block text-xs font-semibold uppercase tracking-wider text-[#4A1521]">
-                Clave de Seguridad
-              </label>
-              <input
-                v-model="adminForm.password"
-                type="password"
-                required
-                class="w-full px-3.5 py-2.5 rounded-xl border border-[#EEDCD5] text-sm text-[#1B1C1B] bg-[#FCF9F7] focus:outline-none focus:border-[#4A1521]"
-              />
-            </div>
-
-            <button
-              type="submit"
-              class="w-full py-3 rounded-xl bg-[#4A1521] text-white hover:bg-[#2F020D] text-xs font-semibold uppercase tracking-wider transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <span class="material-symbols-outlined text-[18px]">key</span>
-              <span>Ingresar como Administrador</span>
-            </button>
-          </form>
         </div>
       </div>
     </div>
@@ -491,7 +433,7 @@
 import { ref, watch, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { User } from '../types';
-import { getStoredUsers, INITIAL_USERS } from '../services/storage';
+import { getStoredUsers } from '../services/storage';
 import { loginUser, registerUser, showToast } from '../store';
 import { sanitizeName, isValidName, sanitizePhone, isValidPhone } from '../utils/validation';
 import {
@@ -503,7 +445,7 @@ import {
 
 const props = defineProps<{
   isOpen: boolean;
-  initialMode?: 'login' | 'register' | 'admin';
+  initialMode?: 'login' | 'register';
 }>();
 
 const emit = defineEmits<{
@@ -511,7 +453,7 @@ const emit = defineEmits<{
 }>();
 
 const router = useRouter();
-const currentTab = ref<'login' | 'register' | 'admin'>('login');
+const currentTab = ref<'login' | 'register'>('login');
 const authError = ref('');
 const showGooglePicker = ref(false);
 const isGoogleLoading = ref(false);
@@ -539,30 +481,15 @@ const registerForm = reactive({
   ciudad: ''
 });
 
-const adminForm = reactive({
-  email: 'admin@aromancia.com',
-  password: 'admin'
-});
-
 watch(
   () => props.initialMode,
   (mode) => {
     if (mode) currentTab.value = mode;
-    customGoogleRole.value = mode === 'admin' ? 'admin' : 'cliente';
     authError.value = '';
     showGooglePicker.value = false;
     googleStatusMessage.value = '';
   },
   { immediate: true }
-);
-
-watch(
-  () => currentTab.value,
-  (tab) => {
-    if (tab === 'admin') {
-      customGoogleRole.value = 'admin';
-    }
-  }
 );
 
 watch(
@@ -572,9 +499,6 @@ watch(
       authError.value = '';
       showGooglePicker.value = false;
       googleStatusMessage.value = '';
-      if (currentTab.value === 'admin') {
-        customGoogleRole.value = 'admin';
-      }
     }
   }
 );
@@ -688,11 +612,11 @@ const performGoogleLogin = async (nombre: string, email: string, forcedRole?: 'a
 
   // Determinar rol:
   // Si se especifica forcedRole, se usa ese.
-  // Si estamos en la pestaña 'admin', o si el correo es iaru3000@gmail.com o admin@aromancia.com: admin
+  // El rol de administrador ahora se gestiona automáticamente con Google (iaru3000@gmail.com, admin@aromancia.com o rol seleccionado)
   const role: 'admin' | 'cliente' =
     forcedRole ||
-    (currentTab.value === 'admin' ||
-     cleanEmail === 'iaru3000@gmail.com' ||
+    (cleanEmail === 'iaru3000@gmail.com' ||
+     cleanEmail === 'admin@aromancia.com' ||
      cleanEmail.startsWith('admin')
       ? 'admin'
       : customGoogleRole.value);
@@ -852,26 +776,6 @@ const handleRegister = async () => {
     emit('close');
   } catch (err: any) {
     authError.value = err.message || 'Error al registrar usuario.';
-  }
-};
-
-const handleAdminLogin = () => {
-  authError.value = '';
-  const users = getStoredUsers();
-  const admin = users.find(u => u.rol === 'admin');
-
-  if (
-    admin &&
-    adminForm.email.trim().toLowerCase() === admin.email.toLowerCase()
-  ) {
-    loginUser(admin);
-    emit('close');
-    router.push('/admin');
-  } else {
-    const fallbackAdmin = INITIAL_USERS[0];
-    loginUser(fallbackAdmin);
-    emit('close');
-    router.push('/admin');
   }
 };
 </script>

@@ -316,7 +316,7 @@ import { currentUser, isAdmin, cartCount, logoutUser } from '../store';
 const emit = defineEmits<{
   (e: 'openCart'): void;
   (e: 'openSearch'): void;
-  (e: 'openAuth', mode: 'login' | 'register' | 'admin'): void;
+  (e: 'openAuth', mode: 'login' | 'register'): void;
 }>();
 
 const route = useRoute();

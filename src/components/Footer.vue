@@ -133,21 +133,6 @@
               </router-link>
             </div>
           </template>
-
-          <template v-else>
-            <!-- Enlace requerido: Inicio de sesión de administrador -->
-            <button
-              type="button"
-              @click="openAuthModal('admin')"
-              class="group px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/40 text-xs text-[#EBD9D2] hover:text-white font-medium flex items-center gap-2 transition-all cursor-pointer shadow-sm active:scale-95"
-              title="Acceso exclusivo para el Administrador del Atelier"
-            >
-              <span class="material-symbols-outlined text-[16px] text-[#EBD9D2] group-hover:text-white">
-                admin_panel_settings
-              </span>
-              <span class="font-semibold tracking-wide">Inicio de sesión de Administrador</span>
-            </button>
-          </template>
         </div>
       </div>
     </div>

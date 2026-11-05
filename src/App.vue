@@ -74,17 +74,17 @@ watch(
   () => route.query.requireAdmin,
   (val) => {
     if (val === '1') {
-      openAuthModal('admin');
+      openAuthModal('login');
       showToast(
         'Acceso Restringido',
-        'Debés iniciar sesión como Administrador para acceder a esta sección del Atelier.'
+        'Debés iniciar sesión con tu cuenta de Google autorizada como Administrador.'
       );
     }
   },
   { immediate: true }
 );
 
-const handleOpenAuth = (mode: 'login' | 'register' | 'admin') => {
+const handleOpenAuth = (mode: 'login' | 'register' = 'login') => {
   openAuthModal(mode);
 };
 </script>

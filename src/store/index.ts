@@ -56,7 +56,7 @@ export const supabaseStatus = ref<SupabaseStatus>({
 export const cartDrawerOpen = ref(false);
 export const searchModalOpen = ref(false);
 export const authModalOpen = ref(false);
-export const authModalMode = ref<'login' | 'register' | 'admin'>('login');
+export const authModalMode = ref<'login' | 'register'>('login');
 
 // Floating Toast Notification
 export const toast = ref<{
@@ -240,7 +240,7 @@ export function syncUserFromSupabaseAuth(sbUser: any) {
 }
 
 // Auth Actions
-export function openAuthModal(mode: 'login' | 'register' | 'admin' = 'login') {
+export function openAuthModal(mode: 'login' | 'register' = 'login') {
   authModalMode.value = mode;
   authModalOpen.value = true;
 }
