@@ -8,6 +8,9 @@ import {
   deleteStoredPerfume,
   getStoredCart,
   saveStoredCart,
+  getUserStoredCart,
+  saveUserStoredCart,
+  clearUserStoredCart,
   getStoredWishlist,
   toggleStoredWishlist,
   getStoredUsers,
@@ -105,7 +108,16 @@ export async function initStore() {
   perfumes.value = getStoredPerfumes();
   currentUser.value = getStoredCurrentUser();
   users.value = getStoredUsers();
-  cart.value = getStoredCart();
+  
+  // Si el usuario ya tenía sesión iniciada, cargamos la bolsa de compra vinculada a su cuenta
+  if (currentUser.value?.email) {
+    const userCart = getUserStoredCart(currentUser.value.email);
+    cart.value = userCart;
+    saveStoredCart(userCart);
+  } else {
+    cart.value = getStoredCart();
+  }
+  
   wishlist.value = getStoredWishlist();
   orders.value = getStoredOrders();
 
@@ -191,6 +203,38 @@ export async function initStore() {
 }
 
 /**
+ * Restaura o unifica la bolsa de compra vinculada a la cuenta del usuario
+ */
+export function restoreUserCart(email: string) {
+  if (!email) return;
+  const userSavedCart = getUserStoredCart(email);
+
+  if (cart.value.length > 0 && userSavedCart.length > 0) {
+    // Si tenía una bolsa activa antes de iniciar sesión (invitado) y también en su cuenta,
+    // combinamos ambas colecciones sin duplicar productos idénticos
+    const merged = [...userSavedCart];
+    for (const item of cart.value) {
+      const idx = merged.findIndex(
+        m => m.perfume.id === item.perfume.id && m.tamanoSeleccionado === item.tamanoSeleccionado
+      );
+      if (idx > -1) {
+        merged[idx].cantidad += item.cantidad;
+      } else {
+        merged.push(item);
+      }
+    }
+    cart.value = merged;
+    saveStoredCart(merged);
+    saveUserStoredCart(email, merged);
+  } else if (userSavedCart.length > 0) {
+    cart.value = userSavedCart;
+    saveStoredCart(userSavedCart);
+  } else if (cart.value.length > 0) {
+    saveUserStoredCart(email, cart.value);
+  }
+}
+
+/**
  * Sincroniza un usuario autenticado por Supabase (ej. Google OAuth) al store
  */
 export function syncUserFromSupabaseAuth(sbUser: any) {
@@ -223,6 +267,9 @@ export function syncUserFromSupabaseAuth(sbUser: any) {
   currentUser.value = user;
   saveStoredCurrentUser(user);
 
+  // Restaurar bolsa de compra vinculada a la cuenta de Google
+  restoreUserCart(email);
+
   // Persistir en tabla users de Supabase y localmente
   persistUserToSupabase(user);
   const currentUsers = getStoredUsers();
@@ -233,9 +280,14 @@ export function syncUserFromSupabaseAuth(sbUser: any) {
   }
 
   closeAuthModal();
+  const restoredItems = cart.value.reduce((acc, it) => acc + it.cantidad, 0);
+  const cartSub = restoredItems > 0
+    ? ` Se recuperaron ${restoredItems} fragancia(s) en tu bolsa de compra.`
+    : '';
+
   showToast(
     'Sesión Sincronizada con Supabase',
-    `¡Hola, ${fullName}! Tu cuenta fue vinculada correctamente.`
+    `¡Hola, ${fullName}! Tu cuenta fue vinculada correctamente.${cartSub}`
   );
 }
 
@@ -255,18 +307,26 @@ export function loginUser(user: User) {
   users.value = getStoredUsers();
   closeAuthModal();
 
+  // Restaurar la bolsa de compra vinculada a la cuenta
+  restoreUserCart(user.email);
+
   // Async sync to Supabase users table
   persistUserToSupabase(user);
+
+  const restoredItems = cart.value.reduce((acc, it) => acc + it.cantidad, 0);
+  const cartSub = restoredItems > 0
+    ? ` Se recuperaron ${restoredItems} fragancia(s) en tu bolsa de compra.`
+    : '';
 
   if (user.rol === 'admin') {
     showToast(
       'Sesión de Administrador Iniciada',
-      'Bienvenido al Atelier. Se habilitaron las secciones + Nueva Fragancia y Panel de Administrador.'
+      `Bienvenido al Atelier. Se habilitaron las secciones + Nueva Fragancia y Panel de Administrador.${cartSub}`
     );
   } else {
     showToast(
       `¡Bienvenida/o, ${user.nombre.split(' ')[0]}!`,
-      'Has iniciado sesión como comprador en Aromancia.'
+      `Has iniciado sesión como comprador en Aromancia.${cartSub}`
     );
   }
 }
@@ -287,6 +347,9 @@ export function registerUser(newUser: User) {
   saveStoredCurrentUser(newUser);
   closeAuthModal();
 
+  // Vincular bolsa de compra actual a la nueva cuenta
+  restoreUserCart(newUser.email);
+
   // Sync to Supabase
   persistUserToSupabase(newUser);
 
@@ -297,10 +360,20 @@ export function registerUser(newUser: User) {
 }
 
 export function logoutUser() {
+  // 1. Guardar primero la bolsa de compra vinculada a la cuenta del usuario
+  if (currentUser.value?.email) {
+    saveUserStoredCart(currentUser.value.email, cart.value);
+  }
+
+  // 2. Vaciar completamente la bolsa de compra de la sesión/interfaz activa
+  cart.value = [];
+  saveStoredCart([]);
+
+  // 3. Cerrar sesión
   saveStoredCurrentUser(null);
   currentUser.value = null;
   signOutSupabase();
-  showToast('Sesión Cerrada', 'Has cerrado tu sesión.');
+  showToast('Sesión Cerrada', 'Has cerrado tu sesión y tu bolsa de compra quedó resguardada en tu cuenta.');
 }
 
 // Cart Actions
@@ -319,6 +392,12 @@ export function addToCart(perfume: Perfume, quantity = 1, size = '100ml') {
 
   cart.value = newCart;
   saveStoredCart(newCart);
+
+  // Sincronizar en la cuenta del usuario activo
+  if (currentUser.value?.email) {
+    saveUserStoredCart(currentUser.value.email, newCart);
+  }
+
   showToast(
     'Fragancia agregada',
     `${perfume.nombre} (${size}) fue añadida a tu bolsa de compra.`,
@@ -339,17 +418,30 @@ export function updateCartQuantity(perfumeId: string, delta: number) {
 
   cart.value = newCart;
   saveStoredCart(newCart);
+
+  // Sincronizar en la cuenta del usuario activo
+  if (currentUser.value?.email) {
+    saveUserStoredCart(currentUser.value.email, newCart);
+  }
 }
 
 export function removeFromCart(perfumeId: string) {
   const newCart = cart.value.filter(item => item.perfume.id !== perfumeId);
   cart.value = newCart;
   saveStoredCart(newCart);
+
+  // Sincronizar en la cuenta del usuario activo
+  if (currentUser.value?.email) {
+    saveUserStoredCart(currentUser.value.email, newCart);
+  }
 }
 
 export function clearCart() {
   cart.value = [];
   saveStoredCart([]);
+  if (currentUser.value?.email) {
+    saveUserStoredCart(currentUser.value.email, []);
+  }
 }
 
 export function checkout(clientInfo: {

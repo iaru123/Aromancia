@@ -101,6 +101,8 @@ export function resetStoredPerfumes(): Perfume[] {
 /**
  * Cart persistence
  */
+const USER_CART_PREFIX = 'aromancia_user_cart_';
+
 export function getStoredCart(): CartItem[] {
   try {
     const raw = localStorage.getItem(CART_KEY);
@@ -115,6 +117,41 @@ export function saveStoredCart(cart: CartItem[]): void {
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
   } catch (error) {
     console.error('Error al guardar carrito:', error);
+  }
+}
+
+/**
+ * User-specific Cart persistence (Vinculación de la bolsa de compra a la cuenta del usuario)
+ */
+export function getUserStoredCart(identifier: string): CartItem[] {
+  if (!identifier) return [];
+  try {
+    const cleanKey = `${USER_CART_PREFIX}${identifier.trim().toLowerCase()}`;
+    const raw = localStorage.getItem(cleanKey);
+    return raw ? JSON.parse(raw) : [];
+  } catch (error) {
+    console.error('Error al recuperar carrito de usuario:', error);
+    return [];
+  }
+}
+
+export function saveUserStoredCart(identifier: string, cart: CartItem[]): void {
+  if (!identifier) return;
+  try {
+    const cleanKey = `${USER_CART_PREFIX}${identifier.trim().toLowerCase()}`;
+    localStorage.setItem(cleanKey, JSON.stringify(cart));
+  } catch (error) {
+    console.error('Error al guardar carrito de usuario:', error);
+  }
+}
+
+export function clearUserStoredCart(identifier: string): void {
+  if (!identifier) return;
+  try {
+    const cleanKey = `${USER_CART_PREFIX}${identifier.trim().toLowerCase()}`;
+    localStorage.removeItem(cleanKey);
+  } catch (error) {
+    console.error('Error al limpiar carrito de usuario:', error);
   }
 }
 
